@@ -1,0 +1,2022 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VBall 3.8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0d0d14">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<title>VBall 3.8</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+body {
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+  background: #0d0d14;
+  color: #f0f0ff;
+  padding-bottom: 40px;
+}
+
+/* HEADER */
+.header {
+  background: #16161f;
+  border-bottom: 1px solid #252535;
+  padding: 8px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.header-row1 { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; }
+.logo { font-size: 14px; font-weight: 800; color: #6ba5ff; letter-spacing: .06em; white-space: nowrap; }
+.match-info { font-size: 11px; color: #9090a8; padding-left: 26px; margin-bottom: 6px; font-weight: 600; }
+.adverse-input {
+  flex: 1; background: #1e1e2e; border: 1px solid #4a4a6a;
+
+  border-radius: 10px; color: #ffffff; font-size: 16px;
+  font-family: inherit; padding: 9px 12px; outline: none;
+}
+.adverse-input::placeholder { color: #9090a8; }
+.sets { display: flex; gap: 8px; align-items: center; }
+.set-lbl { font-size: 13px; color: #d0d0e0; font-weight: 700; text-transform: uppercase; }
+.set-btn {
+  flex: 1; padding: 8px 0; border-radius: 9px;
+  border: 1px solid #4a4a6a; background: #1e1e2e;
+  color: #b0b0c8; font-size: 15px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+}
+.set-btn.on { background: #4f8eff; border-color: #4f8eff; color: #fff; }
+
+/* SCORE */
+.scoreboard {
+  margin: 6px 12px 0;
+  background: #1a1a26;
+  border: 1px solid #252535;
+  border-radius: 14px;
+  padding: 8px 10px;
+}
+.score-grid {
+  display: grid;
+  grid-template-columns: 1fr 40px 1fr;
+  gap: 4px;
+  align-items: center;
+}
+.team { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.team-lbl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #d0d0e0; }
+.team-lbl.nous { color: #6ba5ff; }
+.score-num { font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -1.5px; }
+
+.score-btns { display: flex; gap: 6px; }
+.sbtn {
+  width: 34px; height: 32px; border-radius: 9px; border: none;
+  font-size: 18px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.sbtn.plus { background: #4f8eff; color: #fff; }
+.sbtn.minus { background: #3a3a52; color: #d0d0e0; }
+.vs-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.vs-txt { font-size: 12px; color: #b0b0c8; font-weight: 700; }
+.swap-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid #4a4a6a; background: #1e1e2e;
+  color: #d0d0e0; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* PLAYERS */
+.sec-title {
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: #b0b0c8; padding: 7px 14px 5px;
+}
+.players { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 0 12px; }
+.prow {
+  background: #1a1a26; border: 1px solid #252535;
+  border-radius: 11px; display: flex; align-items: center;
+  padding: 5px 7px; gap: 5px;
+}
+.pname { font-size: 15px; font-weight: 700; min-width: 40px; color: #ffffff; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.pname:active { opacity: .55; }
+.svt-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 17px; height: 17px; padding: 0 4px; margin-left: 4px;
+  border-radius: 9px; background: rgba(245,197,24,.18); color: #f5c518;
+  font-size: 11px; font-weight: 800; vertical-align: middle;
+}
+.pbtns { flex: 1; display: flex; gap: 4px; }
+.pbtn {
+  flex: 1; height: 36px; border-radius: 8px; border: none;
+  font-family: inherit; font-weight: 800; cursor: pointer;
+
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; padding: 0;
+}
+.pbtn.srv { background: rgba(245,197,24,.15);  color: #f5c518; border: 1px solid rgba(245,197,24,.4); position: relative; }
+.pbtn.srv::after {
+  content: ''; position: absolute; top: 3px; right: 4px; width: 5px; height: 5px;
+  border-radius: 50%; background: rgba(245,197,24,.55);
+}
+.pbtn.srv.ace-flash { animation: aceFlash .6s ease; }
+@keyframes aceFlash {
+  0%   { background: rgba(0,255,120,.9); color: #0d0d14; }
+  100% { background: rgba(245,197,24,.15); color: #f5c518; }
+}
+.pbtn.err { background: rgba(42,42,62,.5);     color: #b0b0c8; border: 1px solid rgba(120,120,140,.35); }
+.pbtn.pts { background: rgba(62,160,255,.15);  color: #3ea0ff; border: 1px solid rgba(62,160,255,.4); }
+.pbtn.ast { background: rgba(0,229,229,.15);   color: #00e5e5; border: 1px solid rgba(0,229,229,.4); }
+.pbtn.rp  { background: rgba(0,255,120,.15);   color: #00ff78; border: 1px solid rgba(0,255,120,.4); }
+.pbtn.rm  { background: rgba(255,80,180,.15);  color: #ff50b4; border: 1px solid rgba(255,80,180,.4); }
+
+/* Ligne joueuse spéciale (P/L) */
+.prow.special { grid-column: 1 / -1; padding: 7px 10px; }
+.prow.special .pname { min-width: 44px; font-size: 14px; }
+.prow.special .role-tag {
+  font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 5px;
+  margin-left: 4px; letter-spacing: .05em;
+}
+.role-tag.P { background: rgba(0,229,229,.2); color: #00e5e5; }
+.role-tag.L { background: rgba(0,255,120,.2); color: #00ff78; }
+.prow.special .pbtn { height: 40px; font-size: 17px; }
+.pbtn.has-tag { flex-direction: column; gap: 0; padding: 3px 0; }
+.pbtn-tag { font-size: 9px; font-weight: 700; letter-spacing: .04em; opacity: .9; line-height: 1; }
+.pbtn.has-tag > span:last-child { font-size: 16px; font-weight: 800; line-height: 1; }
+
+/* ACTIONS */
+.actions { display: flex; gap: 6px; padding: 7px 12px 0; flex-wrap: wrap; }
+.abtn {
+  flex: 1; min-width: 0; height: 42px; border-radius: 12px; border: none;
+  font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.abtn.undo    { background: #2a2a3e; color: #d0d0e0; border: 1px solid #4a4a6a; }
+
+.abtn.players { background: #2a2a3e; color: #d0d0e0; border: 1px solid #4a4a6a; }
+.abtn.tourn   { background: rgba(0,229,229,.15); color: #00e5e5; border: 1px solid rgba(0,229,229,.4); }
+.abtn.reset   { background: rgba(255,80,180,.12); color: #ff50b4; border: 3px solid #000; }
+.abtn.exp     { background: #4f8eff; color: #fff; }
+.abtn.autoscore.on  { background: rgba(0,255,120,.12); color: #00ff78; border: 1px solid rgba(0,255,120,.4); }
+.abtn.autoscore.off { background: rgba(255,170,0,.18); color: #ffaa00; border: 1px solid rgba(255,170,0,.5); }
+
+/* MODAL BASE */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.8); z-index: 100;
+  align-items: flex-end; justify-content: center;
+}
+.overlay.show { display: flex; }
+.modal {
+  background: #16161f; border: 1px solid #252535;
+  border-radius: 20px 20px 0 0; padding: 18px 16px 36px;
+  width: 100%; max-height: 88dvh; overflow-y: auto;
+}
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: #ffffff; }
+.modal-hint  { font-size: 13px; color: #9090a8; margin-bottom: 12px; line-height: 1.5; }
+.modal-btns { display: flex; gap: 8px; margin-top: 10px; }
+.mbtn {
+  flex: 1; height: 48px; border-radius: 12px; border: none;
+  font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.mbtn.copy  { background: #4f8eff; color: #fff; }
+.mbtn.close { background: #1e1e2e; color: #d0d0e0; border: 1px solid #4a4a6a; }
+.mbtn.warn  { background: rgba(255,80,180,.15); color: #ff50b4; border: 2px solid #ff50b4; }
+
+/* CONFIRM MODAL (centered) */
+.confirm-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.75); z-index: 300;
+
+  align-items: center; justify-content: center; padding: 20px;
+}
+.confirm-overlay.show { display: flex; }
+.confirm-box {
+  background: #16161f; border: 1px solid #4a4a6a;
+  border-radius: 18px; padding: 24px 20px; width: 100%; max-width: 340px;
+  text-align: center;
+}
+.confirm-box h3 { font-size: 17px; font-weight: 700; margin-bottom: 10px; color: #ffffff; }
+.confirm-box p  { font-size: 14px; color: #b0b0c8; margin-bottom: 20px; line-height: 1.5; }
+.confirm-btns { display: flex; gap: 10px; }
+.cbtn {
+  flex: 1; height: 46px; border-radius: 12px; border: none;
+  font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.cbtn.cancel  { background: #2a2a3e; color: #d0d0e0; border: 1px solid #4a4a6a; }
+.cbtn.confirm { background: #ff50b4; color: #fff; }
+.cbtn.confirmBlue { background: #4f8eff; color: #fff; }
+
+/* PROMPT MODAL (for text input) */
+.prompt-input {
+  width: 100%; background: #0d0d14; color: #ffffff;
+  border: 1px solid #4a4a6a; border-radius: 10px;
+  padding: 12px 14px; font-size: 16px; font-family: inherit;
+  outline: none; margin-bottom: 16px;
+}
+
+/* TOURNAMENT SCREEN */
+.tourn-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.tourn-name { flex: 1; font-size: 17px; font-weight: 800; color: #ffffff; }
+.tourn-status { font-size: 11px; padding: 3px 8px; border-radius: 5px; font-weight: 700; }
+.tourn-status.active { background: rgba(0,255,120,.2); color: #00ff78; }
+
+.tourn-status.done   { background: rgba(255,80,180,.2); color: #ff50b4; }
+.tourn-btns { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.tbtn {
+  padding: 8px 12px; border-radius: 9px; border: 1px solid #4a4a6a;
+  background: #2a2a3e; color: #d0d0e0; font-family: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.tbtn.primary { background: #4f8eff; color: #fff; border-color: #4f8eff; }
+.tbtn.accent  { background: rgba(0,229,229,.15); color: #00e5e5; border-color: rgba(0,229,229,.4); }
+.tbtn.warn    { background: rgba(255,80,180,.15); color: #ff50b4; border-color: #ff50b4; }
+
+.tourn-recap {
+  background: #1a1a26; border: 1px solid #252535;
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+  font-size: 13px; color: #d0d0e0; line-height: 1.7;
+}
+.tourn-recap strong { color: #ffffff; }
+
+.match-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.match-item {
+  background: #1a1a26; border: 1px solid #252535;
+  border-radius: 10px; padding: 10px 12px;
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+}
+.match-item.active { border-color: #6ba5ff; }
+.match-item .m-name { flex: 1; }
+.match-item .m-name b { color: #ffffff; font-size: 14px; }
+.match-item .m-name span { color: #9090a8; font-size: 12px; display: block; }
+.match-item .m-result { font-size: 13px; font-weight: 800; padding: 4px 10px; border-radius: 6px; }
+.m-result.V { background: rgba(0,255,120,.15); color: #00ff78; }
+.m-result.D { background: rgba(255,80,180,.15); color: #ff50b4; }
+.m-result.E { background: #3a3a52; color: #d0d0e0; }
+
+.m-result.NP { background: #2a2a3e; color: #9090a8; }
+
+.stats-table {
+  background: #1a1a26; border: 1px solid #252535;
+  border-radius: 12px; padding: 12px;
+  font-family: 'Menlo', 'Courier New', monospace;
+  font-size: 12px; color: #d0d0e0; overflow-x: auto;
+  white-space: pre; line-height: 1.6;
+}
+
+/* MENU (bottom sheet actions) */
+.menu-item {
+  padding: 14px 16px; background: #1e1e2e; border-radius: 10px;
+  color: #d0d0e0; font-size: 15px; font-weight: 600;
+  border: 1px solid #4a4a6a; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+}
+.menu-item.warn { color: #ff50b4; border-color: rgba(255,80,180,.4); }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: #252535; color: #f0f0ff;
+  padding: 9px 20px; border-radius: 40px;
+  font-size: 14px; font-weight: 600;
+  transition: transform .25s ease; z-index: 400;
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Utils */
+
+input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4f8eff; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-row1">
+    <span class="logo">VBALL 3.8</span>
+    <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
+  </div>
+  <div class="match-info" id="matchInfo">—</div>
+  <div class="sets">
+    <span class="set-lbl">Set</span>
+    <button class="set-btn on" id="s1">1</button>
+    <button class="set-btn"    id="s2">2</button>
+    <button class="set-btn"    id="s3">3</button>
+  </div>
+</div>
+
+<!-- SCORE -->
+<div class="scoreboard">
+  <div class="score-grid">
+    <div class="team">
+      <div class="team-lbl nous" id="lblNous">NOUS</div>
+      <div class="score-num" id="numNous">0</div>
+      <div class="score-btns">
+        <button class="sbtn minus" id="nMinus">−</button>
+        <button class="sbtn plus"  id="nPlus">+</button>
+      </div>
+    </div>
+    <div class="vs-col">
+
+      <span class="vs-txt">VS</span>
+      <button class="swap-btn" id="swapBtn">⇄</button>
+    </div>
+    <div class="team">
+      <div class="team-lbl" id="lblAdv">ADV</div>
+      <div class="score-num" id="numAdv">0</div>
+      <div class="score-btns">
+        <button class="sbtn minus" id="aMinus">−</button>
+        <button class="sbtn plus"  id="aPlus">+</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYERS -->
+<div class="sec-title">Joueuses — <span style="color:#f5c518">Srv</span> · <span style="color:#b0b0c8">Err</span> · <span style="color:#3ea0ff">Pts</span> · <span style="color:#00e5e5">Ast</span> · <span style="color:#00ff78">R+</span> · <span style="color:#ff50b4">R−</span></div>
+<div class="players" id="players"></div>
+
+<!-- ACTIONS -->
+<div class="actions">
+  <button class="abtn undo"    id="btnUndo">↩</button>
+  <button class="abtn players" id="btnPlayers">⚙</button>
+  <button class="abtn tourn"   id="btnTourn">🏆</button>
+  <button class="abtn autoscore on" id="btnAutoScore" title="Score automatique">🔒</button>
+  <button class="abtn reset"   id="btnReset">↺</button>
+  <button class="abtn exp"     id="btnExport">↑</button>
+</div>
+
+<!-- CONFIRM MODAL (generic) -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">Confirmer ?</h3>
+    <p id="confirmText"></p>
+
+    <div class="confirm-btns">
+      <button class="cbtn cancel"  id="confirmCancel">Annuler</button>
+      <button class="cbtn confirm" id="confirmOk">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROMPT MODAL (text input) -->
+<div class="confirm-overlay" id="promptOverlay">
+  <div class="confirm-box">
+    <h3 id="promptTitle">Nom ?</h3>
+    <input class="prompt-input" id="promptInput" type="text" maxlength="40">
+    <div class="confirm-btns">
+      <button class="cbtn cancel"  id="promptCancel">Annuler</button>
+      <button class="cbtn confirmBlue" id="promptOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXPORT -->
+<div class="overlay" id="exportOverlay">
+  <div class="modal">
+    <div class="modal-title">📤 Exporter</div>
+    <div class="modal-hint">Mail, CSV et aperçu texte couvrent tout le <b style="color:#fff">tournoi complet</b> (tous les matchs).</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="mbtn copy" id="btnMail" style="height:52px;">📧 Envoyer par Mail</button>
+      <button class="mbtn copy" id="btnCsv"  style="height:52px; background:#00ff78; color:#0d0d14;">📊 Télécharger .csv</button>
+      <button class="mbtn copy" id="btnPreview" style="height:52px; background:#2a2a3e; color:#d0d0e0;">👁 Aperçu texte</button>
+      <div class="modal-hint" style="margin:6px 0 0;">Sauvegarde complète (tous les tournois) — à garder dans Fichiers ou à s'envoyer par mail :</div>
+      <div style="display:flex; gap:8px;">
+        <button class="mbtn copy" id="btnExpCsv2"  style="height:52px; background:rgba(0,255,120,.15); color:#00ff78; border:1px solid rgba(0,255,120,.4);">📊 Stats .csv</button>
+        <button class="mbtn copy" id="btnExpJson" style="height:52px; background:rgba(0,229,229,.15); color:#00e5e5; border:1px solid rgba(0,229,229,.4);">💾 Sauvegarde .json</button>
+      </div>
+      <button class="mbtn copy" id="btnImportJson" style="height:52px; background:#2a2a3e; color:#ffb800; border:1px solid rgba(255,184,0,.5);">📥 Importer une sauvegarde .json</button>
+      <button class="mbtn close" id="btnExportClose">Fermer</button>
+    </div>
+    <textarea id="exportTa" readonly style="display:none; margin-top:10px; width:100%; height:250px; background:#0d0d14; color:#c0c0e0; border:1px solid #252535; border-radius:10px; padding:12px; font-family:'Menlo',monospace; font-size:13px; line-height:1.6; resize:none;"></textarea>
+  </div>
+
+</div>
+
+<!-- MODAL JOUEUSES -->
+<div class="overlay" id="playersOverlay">
+  <div class="modal">
+    <div class="modal-title">⚙ Gérer les joueuses</div>
+    <div class="modal-hint">Le rôle A/P/L change pour <b style="color:#fff">le set actif</b> seulement.<br>Décoche pour marquer une joueuse absente de ce match.</div>
+    <div id="playersList" style="display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; margin-bottom:12px;"></div>
+    <div style="display:flex; gap:6px; margin-bottom:10px;">
+      <input id="newPlayerInput" type="text" placeholder="Nouvelle joueuse…" maxlength="12"
+        style="flex:1; background:#0d0d14; color:#f0f0ff; border:1px solid #4a4a6a; border-radius:10px; padding:10px 12px; font-size:15px; font-family:inherit; outline:none;">
+      <button id="addPlayerBtn" class="mbtn copy" style="flex:none; width:60px; height:auto; font-size:20px;">+</button>
+    </div>
+    <button class="mbtn copy" id="btnSetPresence" style="width:100%; margin-bottom:8px; background:#2a2a3e; color:#00e5e5; border:1px solid #00e5e5;">🏐 Présentes sur ce set…</button>
+    <button class="mbtn close" id="playersClose" style="width:100%;">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL PRÉSENCES PAR SET -->
+<div class="overlay" id="setPresenceOverlay">
+  <div class="modal">
+    <div class="modal-title" id="setPresenceTitle">🏐 Présentes — Set 1</div>
+    <div class="modal-hint">Décoche une joueuse qui n'a <b style="color:#fff">pas joué ce set</b> (rotation, remplacement, blessure). Ses stats ne compteront pas pour ce set. Ceci n'affecte pas les autres sets.</div>
+    <div id="setPresenceList" style="display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; margin-bottom:12px;"></div>
+    <button class="mbtn close" id="setPresenceClose" style="width:100%;">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL TOURNOI -->
+<div class="overlay" id="tournOverlay">
+  <div class="modal">
+    <div class="tourn-header">
+      <div class="tourn-name" id="tournName">—</div>
+      <span class="tourn-status" id="tournStatus">Actif</span>
+    </div>
+
+    <div class="tourn-btns">
+      <button class="tbtn primary" id="btnNewMatch">+ Nouveau match</button>
+      <button class="tbtn"         id="btnRenameTourn">✏️ Renommer</button>
+      <button class="tbtn"         id="btnSwitchTourn">📁 Tournois</button>
+    </div>
+
+    <div class="tourn-recap" id="tournRecap">—</div>
+
+    <div class="modal-title" style="font-size:14px; margin-bottom:8px;">Matchs</div>
+    <div class="match-list" id="matchList"></div>
+
+    <div class="modal-title" style="font-size:14px; margin-bottom:8px;">Cumul du tournoi</div>
+    <div class="stats-table" id="cumulTable">—</div>
+
+    <div class="tourn-btns" style="margin-top:14px;">
+      <button class="tbtn accent" id="btnExportTourn">📧 Exporter tournoi</button>
+      <button class="tbtn"        id="btnBackup">💾 Sauvegarde</button>
+      <button class="tbtn"        id="btnRestore">📥 Restaurer</button>
+      <button class="tbtn warn"   id="btnFinishTourn">✓ Terminer</button>
+    </div>
+
+    <button class="mbtn close" id="tournClose" style="width:100%; margin-top:14px;">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL LIST OF TOURNAMENTS -->
+<div class="overlay" id="tournListOverlay">
+  <div class="modal">
+    <div class="modal-title">📁 Mes tournois</div>
+    <div class="modal-hint">Sélectionne un tournoi ou crée-en un nouveau.</div>
+    <div id="tournListItems" style="display:flex; flex-direction:column; gap:6px; margin-bottom:12px; max-height:300px; overflow-y:auto;"></div>
+    <button class="mbtn copy" id="btnCreateTourn" style="width:100%; margin-bottom:8px;">+ Nouveau tournoi</button>
+    <button class="mbtn close" id="tournListClose" style="width:100%;">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL MATCH MENU -->
+<div class="overlay" id="matchMenuOverlay">
+  <div class="modal">
+
+    <div class="modal-title" id="matchMenuTitle">Match ?</div>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+      <button class="menu-item" id="mmActivate">✓ Rendre actif</button>
+      <button class="menu-item" id="mmRename">✏️ Renommer</button>
+      <button class="menu-item" id="mmNote">📝 Notes du match</button>
+      <button class="menu-item warn" id="mmDelete">🗑 Supprimer</button>
+    </div>
+    <button class="mbtn close" id="matchMenuClose" style="width:100%;">Annuler</button>
+  </div>
+</div>
+
+<!-- MODAL NOTES -->
+<div class="overlay" id="notesOverlay">
+  <div class="modal">
+    <div class="modal-title" id="notesTitle">📝 Notes</div>
+    <textarea id="notesTa" style="width:100%; height:200px; background:#0d0d14; color:#f0f0ff; border:1px solid #4a4a6a; border-radius:10px; padding:12px; font-size:15px; font-family:inherit; resize:none; margin-bottom:12px;" placeholder="Notes libres sur ce match (blessures, tactique, remarques…)"></textarea>
+    <div class="confirm-btns">
+      <button class="cbtn cancel" id="notesCancel">Annuler</button>
+      <button class="cbtn confirmBlue" id="notesSave">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESTORE INPUT (hidden file input) -->
+<input type="file" id="restoreFile" accept=".json,application/json" style="display:none;">
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATA MODEL
+// ═══════════════════════════════════════════
+
+var DEFAULT_NAMES = ['Gab','Lau','Kiki','ALP','Cam','Eli','ALG','Dalie'];
+var DEFAULT_ROLES = {ALG:'L', Dalie:'P'};              // rôle de départ par défaut ; les autres sont 'A'
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function freshStats() { return {srv:0, err:0, pts:0, ast:0, rp:0, rm:0, as:0, svt:0, def:0}; }
+
+function freshSet(names, roles) {
+  var stats = {}; var setRoles = {}; var setAbsent = {}; var setPos = {};
+  names.forEach(function(n){
+    stats[n] = freshStats();
+    setRoles[n] = (roles && roles[n]) || 'A';
+    setAbsent[n] = false;
+    setPos[n] = (setRoles[n] === 'L') ? 7 : 0;
+  });
+  return { nous:0, adv:0, swapped:false, stats:stats, roles:setRoles, absent:setAbsent, startPos:setPos, hist:[] };
+}
+
+function freshMatch(idx, names, initialRoles) {
+  return {
+    id: uid(),
+    name: 'Match ' + idx,
+    adverse: '',
+    date: new Date().toISOString(),
+    curSet: 1,
+    names: names.slice(),                     // liste des présentes
+    absent: {},                                // nom -> true si absente
+    notes: '',
+    sets: {
+      1: freshSet(names, initialRoles),
+      2: freshSet(names, initialRoles),
+      3: freshSet(names, initialRoles)
+    }
+  };
+
+}
+
+function freshTournament(name) {
+  var t = {
+    id: uid(),
+    name: name || 'Tournoi ' + new Date().toLocaleDateString('fr-FR'),
+    createdAt: new Date().toISOString(),
+    finished: false,
+    names: DEFAULT_NAMES.slice(),              // liste maître du tournoi
+    matches: []
+  };
+  var initialRoles = {};
+  DEFAULT_NAMES.forEach(function(n){ initialRoles[n] = DEFAULT_ROLES[n] || 'A'; });
+  t.matches.push(freshMatch(1, t.names, initialRoles));
+  t.activeMatchId = t.matches[0].id;
+  return t;
+}
+
+function freshDB() {
+  var t = freshTournament();
+  return {
+    version: 1,
+    activeTournamentId: t.id,
+    tournaments: [t]
+  };
+}
+
+var DB = freshDB();
+
+// Score automatique : quand actif (par défaut), un PTS/SRV/ERR touche aussi le score.
+// Volontairement non sauvegardé : repart toujours activé à l'ouverture de l'appli,
+// pour ne jamais laisser le score "décroché" sans que l'entraîneur s'en aperçoive.
+var autoScoreEnabled = true;
+
+function save() {
+  try { localStorage.setItem('vb30', JSON.stringify(DB)); } catch(e){}
+}
+
+function load() {
+  try {
+    var raw = localStorage.getItem('vb30');
+    if (!raw) return;
+    var d = JSON.parse(raw);
+    if (d && d.tournaments && d.tournaments.length) {
+      DB = d;
+      // Intégrité de base
+      DB.tournaments.forEach(function(t){
+        if (!t.names) t.names = DEFAULT_NAMES.slice();
+        if (!t.matches) t.matches = [];
+        t.matches.forEach(function(m){
+          if (!m.absent) m.absent = {};
+          if (m.notes === undefined) m.notes = '';
+          [1,2,3].forEach(function(i){
+            var s = m.sets[i];
+            if (!s) return;
+            if (!s.roles) {
+              s.roles = {};
+              m.names.forEach(function(n){ s.roles[n] = 'A'; });
+            }
+            if (!s.absent) s.absent = {};
+            if (!s.hist) s.hist = [];
+            if (!s.startPos) s.startPos = {};
+            m.names.forEach(function(n){
+              if (!s.stats[n]) s.stats[n] = freshStats();
+              if (s.roles[n] === undefined) s.roles[n] = 'A';
+              if (s.absent[n] === undefined) s.absent[n] = false;
+              if (s.startPos[n] === undefined) s.startPos[n] = (s.roles[n] === 'L') ? 7 : 0;
+              ['srv','err','pts','ast','rp','rm','as','svt','def'].forEach(function(k){
+                if (s.stats[n][k] === undefined) s.stats[n][k] = 0;
+              });
+            });
+          });
+        });
+
+        if (!t.activeMatchId && t.matches.length) t.activeMatchId = t.matches[0].id;
+      });
+      if (!DB.activeTournamentId) DB.activeTournamentId = DB.tournaments[0].id;
+    }
+  } catch(e){}
+}
+
+// ═══════════════════════════════════════════
+// ACCESSORS
+// ═══════════════════════════════════════════
+
+function T() {
+  // Tournoi actif
+  return DB.tournaments.find(function(x){ return x.id === DB.activeTournamentId; }) || DB.tournaments[0];
+}
+
+function M() {
+  // Match actif
+  var t = T();
+  return t.matches.find(function(x){ return x.id === t.activeMatchId; }) || t.matches[0];
+}
+
+function S() {
+  // Set actif
+  return M().sets[M().curSet];
+}
+
+function activeNames(setObj, matchObj) {
+  // Noms visibles dans un match (présentes du match ET sur le terrain pour le set donné).
+  // Par défaut : match actif / set actif. Passer un set (et son match) explicites pour
+  // itérer sur un autre match que le match actif (ex. export du tournoi complet).
+  var m = matchObj || M();
+  var s = setObj || S();
+  return m.names.filter(function(n){ return !m.absent[n] && !s.absent[n]; });
+}
+
+function safeId(n) {
+  return n.replace(/[^a-zA-Z0-9]/g, function(c){ return 'x'+c.charCodeAt(0); });
+}
+
+function snap() {
+  var s = S();
+  // nous/adv inclus : un Ajouter PTS/SRV/ERR touche aussi le score (voir plus bas),
+  // donc Annuler doit pouvoir remettre le score comme il était, pas juste la stat.
+  s.hist.push(JSON.stringify({stats:s.stats, nous:s.nous, adv:s.adv}));
+  if (s.hist.length > 40) s.hist.shift();
+}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+
+function renderMatchInfo() {
+  var t = T(); var m = M();
+  var idx = t.matches.findIndex(function(x){ return x.id === m.id; }) + 1;
+  var advPart = m.adverse ? ' · ' + m.adverse : '';
+  document.getElementById('matchInfo').textContent = t.name + ' — ' + m.name + advPart;
+}
+
+function renderScore() {
+  var s = S(); var m = M();
+  document.getElementById('numNous').textContent = s.nous;
+  document.getElementById('numAdv').textContent  = s.adv;
+  var a = (m.adverse || 'ADV').toUpperCase().slice(0,10);
+  if (s.swapped) {
+    document.getElementById('lblNous').textContent = a;
+    document.getElementById('lblAdv').textContent  = 'NOUS';
+  } else {
+    document.getElementById('lblNous').textContent = 'NOUS';
+
+    document.getElementById('lblAdv').textContent  = a;
+  }
+}
+
+function renderSet() {
+  var m = M();
+  [1,2,3].forEach(function(i){
+    document.getElementById('s'+i).className = 'set-btn' + (m.curSet===i ? ' on' : '');
+  });
+}
+
+function renderPlayers() {
+  var s = S(); var m = M();
+  var el = document.getElementById('players');
+  el.innerHTML = '';
+
+  var names = activeNames();
+  var attackers = [];
+  var special = [];
+  names.forEach(function(n, i){
+    var role = s.roles[n] || 'A';
+    if (role === 'A') attackers.push({n:n, name:n, role:role});
+    else special.push({n:n, name:n, role:role});
+  });
+
+  attackers.forEach(function(p){
+    var d = s.stats[p.n];
+    var sid = safeId(p.n);
+    var row = document.createElement('div');
+    row.className = 'prow';
+    row.innerHTML =
+      '<div class="pname" data-n="'+p.n+'" data-t="svt">'+p.n+'<span class="svt-badge" id="c-'+sid+'-svt">'+d.svt+'</span></div>'+
+
+      '<div class="pbtns">'+
+        '<button class="pbtn srv" data-n="'+p.n+'" data-t="srv" id="c-'+sid+'-srv">'+d.srv+'</button>'+
+        '<button class="pbtn err" data-n="'+p.n+'" data-t="err" id="c-'+sid+'-err">'+d.err+'</button>'+
+        '<button class="pbtn pts" data-n="'+p.n+'" data-t="pts" id="c-'+sid+'-pts">'+d.pts+'</button>'+
+      '</div>';
+    el.appendChild(row);
+  });
+
+  special.forEach(function(p){
+    var d = s.stats[p.n];
+    var sid = safeId(p.n);
+    var row = document.createElement('div');
+    row.className = 'prow special';
+    var btns;
+    if (p.role === 'P') {
+      btns =
+        '<button class="pbtn srv" data-n="'+p.n+'" data-t="srv" id="c-'+sid+'-srv">'+d.srv+'</button>'+
+        '<button class="pbtn err" data-n="'+p.n+'" data-t="err" id="c-'+sid+'-err">'+d.err+'</button>'+
+        '<button class="pbtn pts" data-n="'+p.n+'" data-t="pts" id="c-'+sid+'-pts">'+d.pts+'</button>'+
+        '<button class="pbtn ast has-tag" data-n="'+p.n+'" data-t="ast"><span class="pbtn-tag">Ast</span><span id="c-'+sid+'-ast">'+d.ast+'</span></button>';
+    } else {
+      btns =
+        '<button class="pbtn err" data-n="'+p.n+'" data-t="err" id="c-'+sid+'-err">'+d.err+'</button>'+
+        '<button class="pbtn pts" data-n="'+p.n+'" data-t="pts" id="c-'+sid+'-pts">'+d.pts+'</button>'+
+        '<button class="pbtn rp has-tag"  data-n="'+p.n+'" data-t="rp"><span class="pbtn-tag">R+</span><span id="c-'+sid+'-rp">'+d.rp+'</span></button>'+
+        '<button class="pbtn rm has-tag"  data-n="'+p.n+'" data-t="rm"><span class="pbtn-tag">R−</span><span id="c-'+sid+'-rm">'+d.rm+'</span></button>';
+    }
+    // Pour la libero, le service (svt) n'a aucune pertinence — le même tap sur le nom
+    // compte plutôt ses touches en défense (def). Même affichage que le compteur de
+    // service pour les autres, juste une donnée différente derrière pour elle.
+    var badgeKey = (p.role === 'L') ? 'def' : 'svt';
+    var badgeVal = (p.role === 'L') ? d.def : d.svt;
+    row.innerHTML =
+      '<div class="pname" data-n="'+p.n+'" data-t="svt">'+p.n+'<span class="role-tag '+p.role+'">'+p.role+'</span><span class="svt-badge" id="c-'+sid+'-'+badgeKey+'">'+badgeVal+'</span></div>'+
+      '<div class="pbtns">'+btns+'</div>';
+    el.appendChild(row);
+  });
+
+}
+
+function renderAll() {
+  renderMatchInfo();
+  renderScore();
+  renderSet();
+  renderPlayers();
+  document.getElementById('advInput').value = M().adverse || '';
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+var tTimer;
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(tTimer);
+  tTimer = setTimeout(function(){ el.classList.remove('show'); }, 2200);
+}
+
+// ═══════════════════════════════════════════
+// CONFIRM / PROMPT helpers
+// ═══════════════════════════════════════════
+
+var _confirmCb = null;
+function confirmAsk(title, text, onOk) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmText').textContent = text;
+  _confirmCb = onOk;
+  document.getElementById('confirmOverlay').classList.add('show');
+
+}
+document.getElementById('confirmCancel').onclick = function(){
+  document.getElementById('confirmOverlay').classList.remove('show');
+  _confirmCb = null;
+};
+document.getElementById('confirmOk').onclick = function(){
+  document.getElementById('confirmOverlay').classList.remove('show');
+  var cb = _confirmCb; _confirmCb = null;
+  if (cb) cb();
+};
+
+var _promptCb = null;
+function promptAsk(title, defaultVal, onOk) {
+  document.getElementById('promptTitle').textContent = title;
+  document.getElementById('promptInput').value = defaultVal || '';
+  _promptCb = onOk;
+  document.getElementById('promptOverlay').classList.add('show');
+  setTimeout(function(){ document.getElementById('promptInput').focus(); }, 200);
+}
+document.getElementById('promptCancel').onclick = function(){
+  document.getElementById('promptOverlay').classList.remove('show');
+  _promptCb = null;
+};
+document.getElementById('promptOk').onclick = function(){
+  var v = document.getElementById('promptInput').value.trim();
+  document.getElementById('promptOverlay').classList.remove('show');
+  var cb = _promptCb; _promptCb = null;
+  if (cb) cb(v);
+};
+document.getElementById('promptInput').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') document.getElementById('promptOk').click();
+});
+
+// ═══════════════════════════════════════════
+// SCORE / SET / SWAP / STATS handlers
+// ═══════════════════════════════════════════
+
+document.getElementById('nPlus').onclick = function() {
+  snap(); S().nous = Math.max(0, S().nous+1); renderScore(); save();
+};
+document.getElementById('nMinus').onclick = function() {
+  snap(); S().nous = Math.max(0, S().nous-1); renderScore(); save();
+};
+document.getElementById('aPlus').onclick = function() {
+  snap(); S().adv = Math.max(0, S().adv+1); renderScore(); save();
+};
+document.getElementById('aMinus').onclick = function() {
+  snap(); S().adv = Math.max(0, S().adv-1); renderScore(); save();
+};
+document.getElementById('swapBtn').onclick = function() {
+  var s = S();
+  s.swapped = !s.swapped;
+  var tmp = s.nous; s.nous = s.adv; s.adv = tmp;
+  renderScore(); save(); toast('Côtés inversés');
+};
+
+function switchSet(i) { M().curSet = i; renderAll(); save(); }
+document.getElementById('s1').onclick = function() { switchSet(1); };
+document.getElementById('s2').onclick = function() { switchSet(2); };
+document.getElementById('s3').onclick = function() { switchSet(3); };
+
+// Appui long sur SRV = As au service (pas de bouton de plus : on réutilise SRV,
+// l'appui court reste "service manqué" comme avant). Un petit point jaune sur le
+// bouton SRV rappelle que l'appui long fait autre chose.
+var ACE_HOLD_MS = 450;
+var aceTimer = null;
+var aceJustFired = false;
+
+function logAce(n) {
+  snap();
+  var s = S();
+  s.stats[n].pts++;
+  s.stats[n].as++;
+  var elPts = document.getElementById('c-'+safeId(n)+'-pts');
+  if (elPts) elPts.textContent = s.stats[n].pts;
+  if (autoScoreEnabled) { s.nous++; renderScore(); }
+  save();
+  toast('As au service — ' + n + ' 🔥');
+  var btn = document.getElementById('c-'+safeId(n)+'-srv');
+  if (btn) {
+    btn.classList.remove('ace-flash'); void btn.offsetWidth; // relance l'animation si déjà en cours
+    btn.classList.add('ace-flash');
+  }
+}
+
+document.getElementById('players').addEventListener('pointerdown', function(e){
+  var btn = e.target.closest('[data-n][data-t="srv"]');
+  if (!btn) return;
+  aceJustFired = false;
+  clearTimeout(aceTimer);
+  aceTimer = setTimeout(function(){
+    aceJustFired = true;
+    logAce(btn.getAttribute('data-n'));
+  }, ACE_HOLD_MS);
+});
+['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+  document.getElementById('players').addEventListener(ev, function(){
+    clearTimeout(aceTimer);
+  });
+});
+
+document.getElementById('players').addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-n]');
+  if (!btn) return;
+  if (aceJustFired) { aceJustFired = false; return; } // l'appui long a déjà tout géré
+
+  var n = btn.getAttribute('data-n');
+  var t = btn.getAttribute('data-t');
+  // Pour la libero, le tap sur le nom (normalement "svt" = service exécuté, sans
+  // pertinence pour elle) compte plutôt les fois où elle touche la balle en premier
+  // en défense (def) — même geste, donnée différente selon le rôle.
+  if (t === 'svt' && (S().roles[n] || 'A') === 'L') t = 'def';
+  snap();
+  var s = S();
+  s.stats[n][t]++;
+  var el = document.getElementById('c-'+safeId(n)+'-'+t);
+  if (el) el.textContent = s.stats[n][t];
+  // Un point pour nous (PTS), ou une erreur/service manqué qui donne le point à l'adversaire
+  if (autoScoreEnabled) {
+    if (t === 'pts') { s.nous++; renderScore(); }
+    else if (t === 'srv' || t === 'err') { s.adv++; renderScore(); }
+  }
+  save();
+});
+
+document.getElementById('btnAutoScore').onclick = function(){
+  autoScoreEnabled = !autoScoreEnabled;
+  var btn = document.getElementById('btnAutoScore');
+  if (autoScoreEnabled) {
+    btn.className = 'abtn autoscore on';
+    btn.textContent = '🔒';
+    toast('Score automatique activé');
+  } else {
+    btn.className = 'abtn autoscore off';
+    btn.textContent = '🔓';
+    toast('Score automatique désactivé — les stats ne touchent plus au score');
+  }
+};
+
+// UNDO
+document.getElementById('btnUndo').onclick = function() {
+  var s = S();
+  if (!s.hist.length) { toast('Rien à annuler'); return; }
+  var prev = JSON.parse(s.hist.pop());
+  s.stats = prev.stats;
+  if (prev.nous !== undefined) s.nous = prev.nous;
+  if (prev.adv  !== undefined) s.adv  = prev.adv;
+  activeNames().forEach(function(n) {
+    var sid = safeId(n);
+    var st = s.stats[n] || freshStats();
+    ['srv','err','pts','ast','rp','rm','as','svt','def'].forEach(function(k){
+      var e = document.getElementById('c-'+sid+'-'+k);
+      if (e) e.textContent = st[k] || 0;
+    });
+  });
+  renderScore();
+  save(); toast('Stat annulée');
+};
+
+// RESET (avec confirmation)
+document.getElementById('btnReset').onclick = function() {
+  confirmAsk('Réinitialiser ce match ?', 'Efface toutes les stats et scores de ce match. Le match reste dans le tournoi.', function(){
+    var m = M();
+    m.sets = {
+      1: freshSet(m.names, m.sets[1].roles),
+
+      2: freshSet(m.names, m.sets[2].roles),
+      3: freshSet(m.names, m.sets[3].roles)
+    };
+    m.curSet = 1;
+    renderAll(); save(); toast('Match réinitialisé');
+  });
+};
+
+// Adverse input
+document.getElementById('advInput').addEventListener('input', function() {
+  M().adverse = this.value; renderScore(); renderMatchInfo(); save();
+});
+
+// ═══════════════════════════════════════════
+// PLAYERS MODAL (roles per set + absence per match)
+// ═══════════════════════════════════════════
+
+function renderPlayersModal() {
+  var t = T(); var m = M(); var s = S();
+  var list = document.getElementById('playersList');
+  list.innerHTML = '';
+
+  m.names.forEach(function(n, idx){
+    var role = s.roles[n] || 'A';
+    var absent = !!m.absent[n];
+    var roleColor = role === 'P' ? '#00e5e5' : (role === 'L' ? '#00ff78' : '#d0d0e0');
+    var roleBg    = role === 'P' ? 'rgba(0,229,229,.2)' : (role === 'L' ? 'rgba(0,255,120,.2)' : '#2a2a3e');
+    var pos = (s.startPos && s.startPos[n] !== undefined) ? s.startPos[n] : 0;
+    var posColor = pos === 0 ? '#6a6a80' : (pos === 7 ? '#00ff78' : '#ffb800');
+    var posBg    = pos === 0 ? '#1e1e2e' : (pos === 7 ? 'rgba(0,255,120,.2)' : 'rgba(255,184,0,.2)');
+    var isFirst = idx === 0;
+    var isLast = idx === m.names.length - 1;
+
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:5px; background:#0d0d14; border:1px solid #252535; border-radius:8px; padding:6px 8px;' + (absent ? ' opacity:.4;' : '');
+
+    row.innerHTML =
+      '<input type="checkbox" data-abs="'+n+'" '+(absent?'':'checked')+' style="margin-right:4px;">'+
+      '<span style="flex:1; font-size:14px; font-weight:600; color:#fff;">'+n+'</span>'+
+      '<button data-pos="'+n+'" title="Position de départ" style="width:28px; height:32px; border-radius:7px; border:1px solid '+posColor+'; background:'+posBg+'; color:'+posColor+'; font-size:13px; font-weight:800;">'+pos+'</button>'+
+      '<button data-role="'+n+'" style="width:32px; height:32px; border-radius:7px; border:1px solid '+roleColor+'; background:'+roleBg+'; color:'+roleColor+'; font-size:13px; font-weight:800;">'+role+'</button>'+
+      '<button data-up="'+idx+'" '+(isFirst?'disabled':'')+' style="width:28px; height:32px; border-radius:7px; border:1px solid #4a4a6a; background:#1e1e2e; color:'+(isFirst?'#4a4a6a':'#d0d0e0')+'; font-size:14px; font-weight:700;">↑</button>'+
+      '<button data-dn="'+idx+'" '+(isLast?'disabled':'')+' style="width:28px; height:32px; border-radius:7px; border:1px solid #4a4a6a; background:#1e1e2e; color:'+(isLast?'#4a4a6a':'#d0d0e0')+'; font-size:14px; font-weight:700;">↓</button>'+
+      '<button data-rm="'+n+'" style="width:28px; height:32px; border-radius:50%; border:none; background:rgba(255,80,180,.2); color:#ff50b4; font-size:14px; font-weight:700;">✕</button>';
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('btnPlayers').onclick = function() {
+  renderPlayersModal();
+  document.getElementById('playersOverlay').classList.add('show');
+};
+document.getElementById('playersClose').onclick = function() {
+  document.getElementById('playersOverlay').classList.remove('show');
+};
+
+document.getElementById('playersList').addEventListener('change', function(e){
+  var abs = e.target.closest('[data-abs]');
+  if (abs) {
+    var n = abs.getAttribute('data-abs');
+    M().absent[n] = !abs.checked;
+    renderPlayersModal();
+    renderPlayers();
+    save();
+  }
+});
+
+document.getElementById('playersList').addEventListener('click', function(e) {
+  var t = T(); var m = M(); var s = S();
+
+  var rm = e.target.closest('[data-rm]');
+  var up = e.target.closest('[data-up]');
+  var dn = e.target.closest('[data-dn]');
+  var role = e.target.closest('[data-role]');
+  var pos = e.target.closest('[data-pos]');
+
+  if (pos) {
+    var n = pos.getAttribute('data-pos');
+    if (!s.startPos) s.startPos = {};
+    var cur = s.startPos[n] !== undefined ? s.startPos[n] : 0;
+    s.startPos[n] = (cur + 1) % 8;
+    renderPlayersModal();
+    save();
+    return;
+  }
+
+  if (role) {
+    var n = role.getAttribute('data-role');
+    var cur = s.roles[n] || 'A';
+    var next = cur === 'A' ? 'P' : (cur === 'P' ? 'L' : 'A');
+    s.roles[n] = next;
+    if (next === 'L') {
+      if (!s.startPos) s.startPos = {};
+      s.startPos[n] = 7;
+    }
+    renderPlayersModal();
+    renderPlayers();
+    save();
+    return;
+  }
+
+  if (rm) {
+    var name = rm.getAttribute('data-rm');
+    confirmAsk('Supprimer ' + name + ' ?',
+      'La joueuse est retirée de la liste du tournoi. Ses stats des matchs déjà joués sont conservées.',
+      function(){
+        t.names = t.names.filter(function(x){ return x !== name; });
+        // Retirer aussi du match courant
+        m.names = m.names.filter(function(x){ return x !== name; });
+        delete m.absent[name];
+        [1,2,3].forEach(function(i){ delete m.sets[i].absent[name]; });
+        renderPlayersModal();
+        renderPlayers();
+        save();
+        toast(name + ' retirée');
+      });
+    return;
+  }
+
+  if (up) {
+    var i = parseInt(up.getAttribute('data-up'), 10);
+    if (i <= 0) return;
+    var tmp = m.names[i-1]; m.names[i-1] = m.names[i]; m.names[i] = tmp;
+    // Aussi dans la liste maître si présents
+    var ti1 = t.names.indexOf(m.names[i-1]);
+    var ti2 = t.names.indexOf(m.names[i]);
+    if (ti1 >= 0 && ti2 >= 0) {
+      var t2 = t.names[ti2]; t.names[ti2] = t.names[ti1]; t.names[ti1] = t2;
+    }
+    renderPlayersModal();
+    renderPlayers();
+    save();
+    return;
+  }
+
+  if (dn) {
+    var j = parseInt(dn.getAttribute('data-dn'), 10);
+    if (j >= m.names.length - 1) return;
+    var tmp2 = m.names[j+1]; m.names[j+1] = m.names[j]; m.names[j] = tmp2;
+    var ti3 = t.names.indexOf(m.names[j+1]);
+    var ti4 = t.names.indexOf(m.names[j]);
+    if (ti3 >= 0 && ti4 >= 0) {
+      var t3 = t.names[ti4]; t.names[ti4] = t.names[ti3]; t.names[ti3] = t3;
+    }
+    renderPlayersModal();
+    renderPlayers();
+    save();
+    return;
+  }
+});
+
+document.getElementById('addPlayerBtn').onclick = function() {
+  var t = T(); var m = M();
+  var input = document.getElementById('newPlayerInput');
+  var name = input.value.trim();
+  if (!name) return;
+  if (t.names.indexOf(name) >= 0) { toast('Déjà dans la liste'); return; }
+  // Ajouter à la liste maître du tournoi
+  t.names.push(name);
+  // Ajouter au match courant
+  m.names.push(name);
+  // Ajouter aux 3 sets
+  [1,2,3].forEach(function(i){
+    m.sets[i].stats[name] = freshStats();
+    m.sets[i].roles[name] = 'A';
+    m.sets[i].absent[name] = false;
+  });
+  input.value = '';
+  renderPlayersModal();
+  renderPlayers();
+  save();
+  toast(name + ' ajoutée');
+};
+document.getElementById('newPlayerInput').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') document.getElementById('addPlayerBtn').click();
+});
+
+// ═══════════════════════════════════════════
+// MODAL PRÉSENCES PAR SET (qui était sur le terrain, set par set)
+// ═══════════════════════════════════════════
+
+function renderSetPresenceModal() {
+  var m = M(); var s = S();
+  document.getElementById('setPresenceTitle').textContent = '🏐 Présentes — Set ' + m.curSet;
+  var list = document.getElementById('setPresenceList');
+  list.innerHTML = '';
+  m.names.filter(function(n){ return !m.absent[n]; }).forEach(function(n){
+    var onCourt = !s.absent[n];
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:8px; background:#0d0d14; border:1px solid #252535; border-radius:8px; padding:8px 10px;' + (onCourt ? '' : ' opacity:.4;');
+    row.innerHTML =
+      '<input type="checkbox" data-setabs="'+n+'" '+(onCourt?'checked':'')+' style="width:20px; height:20px; margin-right:4px;">'+
+      '<span style="flex:1; font-size:15px; font-weight:600; color:#fff;">'+n+'</span>';
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('btnSetPresence').onclick = function() {
+  renderSetPresenceModal();
+  document.getElementById('setPresenceOverlay').classList.add('show');
+};
+document.getElementById('setPresenceClose').onclick = function() {
+  document.getElementById('setPresenceOverlay').classList.remove('show');
+};
+document.getElementById('setPresenceList').addEventListener('change', function(e){
+  var cb = e.target.closest('[data-setabs]');
+  if (!cb) return;
+  var n = cb.getAttribute('data-setabs');
+  S().absent[n] = !cb.checked;
+  renderSetPresenceModal();
+  renderPlayers();
+  save();
+});
+
+// ═══════════════════════════════════════════
+// TOURNAMENT SCREEN
+// ═══════════════════════════════════════════
+
+function matchResult(m) {
+  // Retourne 'V' / 'D' / 'E' / 'NP' (non joué)
+
+  var setsW=0, setsL=0, anyPlayed=false;
+  [1,2,3].forEach(function(i){
+    var s = m.sets[i];
+    var sn = s.swapped ? s.adv : s.nous;
+    var sa = s.swapped ? s.nous : s.adv;
+    if (sn === 0 && sa === 0) return;
+    anyPlayed = true;
+    if (sn > sa) setsW++;
+    else if (sn < sa) setsL++;
+  });
+  if (!anyPlayed) return 'NP';
+  if (setsW > setsL) return 'V';
+  if (setsW < setsL) return 'D';
+  return 'E';
+}
+
+function matchSetScores(m) {
+  var arr = [];
+  [1,2,3].forEach(function(i){
+    var s = m.sets[i];
+    var sn = s.swapped ? s.adv : s.nous;
+    var sa = s.swapped ? s.nous : s.adv;
+    if (sn === 0 && sa === 0) return;
+    arr.push(sn + '-' + sa);
+  });
+  return arr.join(' · ');
+}
+
+// Cumul du tournoi
+function tournamentCumul() {
+  var t = T();
+  var totals = {};
+
+  var matchesPlayed = {};
+  t.names.forEach(function(n){
+    totals[n] = freshStats();
+    matchesPlayed[n] = 0;
+  });
+  t.matches.forEach(function(m){
+    // On considère la joueuse comme "ayant joué" si présente et si le match a des stats
+    var res = matchResult(m);
+    if (res === 'NP') return; // match pas joué du tout
+    m.names.forEach(function(n){
+      if (m.absent[n]) return;
+      if (!(n in totals)) { totals[n] = freshStats(); matchesPlayed[n] = 0; }
+      matchesPlayed[n]++;
+      [1,2,3].forEach(function(i){
+        var s = m.sets[i];
+        var sn = s.swapped ? s.adv : s.nous;
+        var sa = s.swapped ? s.nous : s.adv;
+        if (sn===0 && sa===0) return; // set non joue : stats residuelles ignorees (meme regle que l'export detail)
+        if (s.absent[n]) return; // pas sur le terrain pour ce set
+        var st = s.stats[n]; if (!st) return;
+        totals[n].srv += st.srv||0;
+        totals[n].err += st.err||0;
+        totals[n].pts += st.pts||0;
+        totals[n].ast += st.ast||0;
+        totals[n].rp  += st.rp||0;
+        totals[n].rm  += st.rm||0;
+        totals[n].as  += st.as||0;
+        totals[n].svt += st.svt||0;
+      });
+    });
+  });
+  return { totals: totals, matchesPlayed: matchesPlayed };
+}
+
+function pad(str, len) { str = String(str); while (str.length < len) str = ' ' + str; return str; }
+function padR(str, len) { str = String(str); while (str.length < len) str += ' '; return str; }
+
+function renderTournamentScreen() {
+
+  var t = T();
+  document.getElementById('tournName').textContent = t.name;
+  var st = document.getElementById('tournStatus');
+  if (t.finished) { st.textContent = 'Terminé'; st.className = 'tourn-status done'; }
+  else            { st.textContent = 'Actif';    st.className = 'tourn-status active'; }
+
+  // Recap tournoi
+  var played = 0, wins = 0, losses = 0, eq = 0;
+  var setsW=0, setsL=0;
+  var scoreFor=0, scoreAgainst=0;
+  t.matches.forEach(function(m){
+    var res = matchResult(m);
+    if (res === 'NP') return;
+    played++;
+    if (res === 'V') wins++; else if (res === 'D') losses++; else eq++;
+    [1,2,3].forEach(function(i){
+      var s = m.sets[i];
+      var sn = s.swapped ? s.adv : s.nous;
+      var sa = s.swapped ? s.nous : s.adv;
+      if (sn === 0 && sa === 0) return;
+      scoreFor += sn; scoreAgainst += sa;
+      if (sn > sa) setsW++; else if (sn < sa) setsL++;
+    });
+  });
+  var recap = '';
+  recap += '<strong>' + played + ' match(s) joué(s)</strong> — ' + wins + 'V · ' + losses + 'D';
+  if (eq) recap += ' · ' + eq + 'E';
+  recap += '<br>Sets : <strong>' + setsW + '-' + setsL + '</strong> · Points : ' + scoreFor + '-' + scoreAgainst;
+  document.getElementById('tournRecap').innerHTML = recap;
+
+  // Liste des matchs (chronologique)
+  var list = document.getElementById('matchList');
+
+  list.innerHTML = '';
+  t.matches.forEach(function(m, i){
+    var res = matchResult(m);
+    var setScores = matchSetScores(m);
+    var advStr = m.adverse || 'Sans adversaire';
+    var isActive = m.id === t.activeMatchId;
+
+    var item = document.createElement('div');
+    item.className = 'match-item' + (isActive ? ' active' : '');
+    item.setAttribute('data-mid', m.id);
+    var resTxt = res === 'NP' ? '—' : (res === 'V' ? 'V' : (res === 'D' ? 'D' : 'E'));
+    item.innerHTML =
+      '<div class="m-name">'+
+        '<b>'+m.name+'</b>'+
+        '<span>vs ' + advStr + (setScores ? ' · ' + setScores : '') + (isActive ? ' · ACTIF' : '') + '</span>'+
+      '</div>'+
+      '<span class="m-result '+res+'">'+resTxt+'</span>';
+    list.appendChild(item);
+  });
+
+  // Cumul stats
+  renderCumulTable();
+}
+
+function renderCumulTable() {
+  var t = T();
+  var c = tournamentCumul();
+  var totals = c.totals; var matchesPlayed = c.matchesPlayed;
+
+  // Trier par Pts
+  var sorted = t.names.slice().sort(function(x, y){
+    return (totals[y] ? totals[y].pts : 0) - (totals[x] ? totals[x].pts : 0);
+
+  });
+
+  // % Eff = pts / (pts + err + srv) -- un service manqué compte comme une erreur
+  function eff(st) {
+    var d = st.pts + st.err + st.srv;
+    if (!d) return '';
+    return Math.round(st.pts / d * 100) + '%';
+  }
+  function pct(a, b) {
+    var d = a + b;
+    if (!d) return '';
+    return Math.round(a / d * 100) + '%';
+  }
+  function ratio(v, n) {
+    if (!n) return '';
+    return (v / n).toFixed(1);
+  }
+
+  var t1 = 'Joueuse   Srv Svt As Err Pts Ast R+ R- Eff% P/M\n';
+  t1    += '─────────────────────────────────────────────────\n';
+  sorted.forEach(function(n){
+    var st = totals[n] || freshStats();
+    var mj = matchesPlayed[n] || 0;
+    var effStr = mj ? eff(st) : '';         // basé sur pts brut (As inclus) = pointage final
+    var pmStr  = mj ? ratio(st.pts, mj) : ''; // idem : pointage final / match
+    var ptsDisplay = (st.pts||0) - (st.as||0); // colonne Pts affichée = sans les As (As a sa propre colonne)
+    t1 += padR(n,9) + pad(mj ? st.srv : '-',4) + pad(mj ? st.svt : '-',4) + pad(mj ? st.as : '-',3) + pad(mj ? st.err : '-',4) +
+          pad(mj ? ptsDisplay : '-',4) + pad(mj ? st.ast : '-',4) + pad(mj ? st.rp : '-',3) +
+          pad(mj ? st.rm : '-',3) + pad(effStr||'-',5) + pad(pmStr||'-',5) + '\n';
+  });
+  document.getElementById('cumulTable').textContent = t1;
+}
+
+document.getElementById('btnTourn').onclick = function() {
+  renderTournamentScreen();
+  document.getElementById('tournOverlay').classList.add('show');
+};
+document.getElementById('tournClose').onclick = function() {
+  document.getElementById('tournOverlay').classList.remove('show');
+};
+
+// Nouveau match
+document.getElementById('btnNewMatch').onclick = function() {
+  var t = T();
+  confirmAsk('Créer un nouveau match ?', 'Le match actuel sera enregistré dans le tournoi.', function(){
+    // Nom par défaut : Match N
+    var next = t.matches.length + 1;
+    // Rôles hérités du dernier match (set 1)
+    var lastM = t.matches[t.matches.length - 1];
+    var initialRoles = {};
+    t.names.forEach(function(n){
+      initialRoles[n] = (lastM && lastM.sets[1].roles[n]) || 'A';
+    });
+    var nm = freshMatch(next, t.names, initialRoles);
+    // Demander un nom personnalisé
+    promptAsk('Nom du match', 'Match ' + next, function(v){
+      if (v) nm.name = v;
+      t.matches.push(nm);
+      t.activeMatchId = nm.id;
+      renderAll();
+      renderTournamentScreen();
+      save();
+      toast('Nouveau match créé');
+    });
+  });
+
+};
+
+// Renommer tournoi
+document.getElementById('btnRenameTourn').onclick = function() {
+  var t = T();
+  promptAsk('Renommer le tournoi', t.name, function(v){
+    if (!v) return;
+    t.name = v;
+    renderTournamentScreen();
+    renderMatchInfo();
+    save();
+  });
+};
+
+// Terminer / réactiver tournoi
+document.getElementById('btnFinishTourn').onclick = function() {
+  var t = T();
+  if (t.finished) {
+    confirmAsk('Réactiver le tournoi ?', 'Le tournoi redevient actif et modifiable.', function(){
+      t.finished = false;
+      renderTournamentScreen();
+      save();
+      toast('Tournoi réactivé');
+    });
+  } else {
+    confirmAsk('Terminer le tournoi ?', 'Tu pourras le réactiver plus tard si tu changes d\'avis.', function(){
+      t.finished = true;
+      renderTournamentScreen();
+      save();
+      toast('Tournoi terminé');
+    });
+  }
+
+};
+
+// Match menu (activate / rename / notes / delete)
+var _menuMatchId = null;
+document.getElementById('matchList').addEventListener('click', function(e){
+  var item = e.target.closest('[data-mid]');
+  if (!item) return;
+  _menuMatchId = item.getAttribute('data-mid');
+  var t = T();
+  var m = t.matches.find(function(x){ return x.id === _menuMatchId; });
+  if (!m) return;
+  document.getElementById('matchMenuTitle').textContent = m.name + (m.adverse ? ' · ' + m.adverse : '');
+  document.getElementById('matchMenuOverlay').classList.add('show');
+});
+document.getElementById('matchMenuClose').onclick = function(){
+  document.getElementById('matchMenuOverlay').classList.remove('show');
+  _menuMatchId = null;
+};
+document.getElementById('mmActivate').onclick = function(){
+  var t = T();
+  t.activeMatchId = _menuMatchId;
+  document.getElementById('matchMenuOverlay').classList.remove('show');
+  document.getElementById('tournOverlay').classList.remove('show');
+  renderAll();
+  save();
+  toast('Match actif');
+};
+document.getElementById('mmRename').onclick = function(){
+  var t = T();
+  var m = t.matches.find(function(x){ return x.id === _menuMatchId; });
+  if (!m) return;
+  var mid = _menuMatchId;
+
+  document.getElementById('matchMenuOverlay').classList.remove('show');
+  promptAsk('Renommer le match', m.name, function(v){
+    if (!v) return;
+    m.name = v;
+    renderTournamentScreen();
+    if (t.activeMatchId === mid) renderMatchInfo();
+    save();
+  });
+};
+document.getElementById('mmNote').onclick = function(){
+  var t = T();
+  var m = t.matches.find(function(x){ return x.id === _menuMatchId; });
+  if (!m) return;
+  document.getElementById('notesTitle').textContent = '📝 ' + m.name;
+  document.getElementById('notesTa').value = m.notes || '';
+  document.getElementById('matchMenuOverlay').classList.remove('show');
+  document.getElementById('notesOverlay').classList.add('show');
+};
+document.getElementById('mmDelete').onclick = function(){
+  var t = T();
+  var m = t.matches.find(function(x){ return x.id === _menuMatchId; });
+  if (!m) return;
+  var mid = _menuMatchId;
+  var mname = m.name;
+  document.getElementById('matchMenuOverlay').classList.remove('show');
+  confirmAsk('Supprimer ' + mname + ' ?', 'Toutes les stats de ce match seront perdues.', function(){
+    t.matches = t.matches.filter(function(x){ return x.id !== mid; });
+    if (!t.matches.length) {
+      // Recréer un match vide
+      var initialRoles = {};
+      t.names.forEach(function(n){ initialRoles[n] = 'A'; });
+      t.matches.push(freshMatch(1, t.names, initialRoles));
+
+    }
+    if (t.activeMatchId === mid) t.activeMatchId = t.matches[0].id;
+    renderTournamentScreen();
+    renderAll();
+    save();
+    toast('Match supprimé');
+  });
+};
+
+// Notes save
+document.getElementById('notesCancel').onclick = function(){
+  document.getElementById('notesOverlay').classList.remove('show');
+};
+document.getElementById('notesSave').onclick = function(){
+  var t = T();
+  var m = t.matches.find(function(x){ return x.id === _menuMatchId; });
+  if (m) {
+    m.notes = document.getElementById('notesTa').value;
+    save();
+    toast('Notes enregistrées');
+  }
+  document.getElementById('notesOverlay').classList.remove('show');
+};
+
+// ═══════════════════════════════════════════
+// TOURNAMENTS LIST (switch / create)
+// ═══════════════════════════════════════════
+
+function renderTournListModal() {
+  var el = document.getElementById('tournListItems');
+  el.innerHTML = '';
+  DB.tournaments.forEach(function(t){
+
+    var isActive = t.id === DB.activeTournamentId;
+    var stStr = t.finished ? '<span style="color:#ff50b4">Terminé</span>' : '<span style="color:#00ff78">Actif</span>';
+    var mCount = t.matches.length;
+    var row = document.createElement('div');
+    row.style.cssText = 'background:#0d0d14; border:1px solid '+(isActive?'#6ba5ff':'#252535')+'; border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:8px;';
+    row.innerHTML =
+      '<div style="flex:1;">'+
+        '<div style="color:#fff; font-weight:700; font-size:14px;">'+t.name+(isActive?' · <span style="color:#6ba5ff;font-size:11px">EN COURS</span>':'')+'</div>'+
+        '<div style="color:#9090a8; font-size:11px;">'+mCount+' match(s) · '+stStr+'</div>'+
+      '</div>'+
+      (isActive ? '' : '<button data-open="'+t.id+'" style="padding:6px 10px;border-radius:7px;border:1px solid #4a4a6a;background:#2a2a3e;color:#d0d0e0;font-family:inherit;font-size:12px;font-weight:700;">Ouvrir</button>')+
+      (DB.tournaments.length > 1 ? '<button data-del="'+t.id+'" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,80,180,.2);color:#ff50b4;font-size:14px;font-weight:700;">✕</button>' : '');
+    el.appendChild(row);
+  });
+}
+
+document.getElementById('btnSwitchTourn').onclick = function() {
+  renderTournListModal();
+  document.getElementById('tournListOverlay').classList.add('show');
+};
+document.getElementById('tournListClose').onclick = function() {
+  document.getElementById('tournListOverlay').classList.remove('show');
+};
+
+document.getElementById('tournListItems').addEventListener('click', function(e){
+  var open = e.target.closest('[data-open]');
+  var del = e.target.closest('[data-del]');
+  if (open) {
+    var tid = open.getAttribute('data-open');
+    DB.activeTournamentId = tid;
+    document.getElementById('tournListOverlay').classList.remove('show');
+    renderAll();
+
+    renderTournamentScreen();
+    save();
+    toast('Tournoi ouvert');
+    return;
+  }
+  if (del) {
+    var tid = del.getAttribute('data-del');
+    var t = DB.tournaments.find(function(x){ return x.id === tid; });
+    confirmAsk('Supprimer "' + t.name + '" ?', 'Toutes les données de ce tournoi seront perdues.', function(){
+      DB.tournaments = DB.tournaments.filter(function(x){ return x.id !== tid; });
+      if (DB.activeTournamentId === tid) DB.activeTournamentId = DB.tournaments[0].id;
+      renderTournListModal();
+      renderAll();
+      renderTournamentScreen();
+      save();
+      toast('Tournoi supprimé');
+    });
+  }
+});
+
+document.getElementById('btnCreateTourn').onclick = function() {
+  promptAsk('Nom du nouveau tournoi', 'Tournoi ' + new Date().toLocaleDateString('fr-FR'), function(v){
+    if (!v) return;
+    // Récupérer les noms du tournoi actif comme point de départ
+    var currentNames = T().names.slice();
+    var initialRoles = {};
+    currentNames.forEach(function(n){ initialRoles[n] = DEFAULT_ROLES[n] || 'A'; });
+    var nt = {
+      id: uid(), name: v, createdAt: new Date().toISOString(),
+      finished: false, names: currentNames, matches: []
+    };
+    nt.matches.push(freshMatch(1, currentNames, initialRoles));
+
+    nt.activeMatchId = nt.matches[0].id;
+    DB.tournaments.push(nt);
+    DB.activeTournamentId = nt.id;
+    document.getElementById('tournListOverlay').classList.remove('show');
+    renderAll();
+    renderTournamentScreen();
+    save();
+    toast('Tournoi créé');
+  });
+};
+
+// ═══════════════════════════════════════════
+// EXPORT (match courant + tournoi complet)
+// ═══════════════════════════════════════════
+
+function buildSetBlock(si, matchObj) {
+  var m = matchObj || M(); var s = m.sets[si];
+  var scoreNous = s.swapped ? s.adv  : s.nous;
+  var scoreAdv  = s.swapped ? s.nous : s.adv;
+  var result = scoreNous > scoreAdv ? 'VICTOIRE' : (scoreNous < scoreAdv ? 'DÉFAITE' : (scoreNous===0&&scoreAdv===0?'—':'ÉGALITÉ'));
+  var mainList = [], liberos = [];
+  activeNames(s, m).forEach(function(n){
+    var role = s.roles[n] || 'A';
+    if (role === 'L') liberos.push(n); else mainList.push(n);
+  });
+  mainList.sort(function(x, y){ return (s.stats[y].pts||0) - (s.stats[x].pts||0); });
+  liberos.sort(function(x, y){  return (s.stats[y].pts||0) - (s.stats[x].pts||0); });
+
+  var t = 'SET ' + si + '  |  ' + scoreNous + ' – ' + scoreAdv + '  ' + result + '\n';
+  t += '────────────────────────────────────────────\n';
+  t += 'Joueuse    Srv  Svt  As  Ast  Err  Pts  ErT\n';
+  t += '────────────────────────────────────────────\n';
+
+  var tsrv=0, tsvt=0, tas=0, tast=0, terr=0, tpts=0, ttot=0;
+  mainList.forEach(function(n){
+    var st = s.stats[n];
+    var role = s.roles[n] || 'A';
+    var vsrv=st.srv||0, vsvt=st.svt||0, vas=st.as||0, vast=st.ast||0, verr=st.err||0, vpts=(st.pts||0)-(st.as||0); // Pts sans les As (colonne As séparée)
+    var vtot = vsrv + verr;
+    tsrv+=vsrv; tsvt+=vsvt; tas+=vas; tast+=vast; terr+=verr; tpts+=vpts; ttot+=vtot;
+    var astStr = (role === 'P') ? String(vast) : '·';
+    t += padR(n,9) + pad(vsrv,5) + pad(vsvt,5) + pad(vas,4) + pad(astStr,5) + pad(verr,5) + pad(vpts,5) + pad(vtot,5) + '\n';
+  });
+  t += '────────────────────────────────────────────\n';
+  t += padR('TOTAL',9) + pad(tsrv,5) + pad(tsvt,5) + pad(tas,4) + pad(tast,5) + pad(terr,5) + pad(tpts,5) + pad(ttot,5) + '\n';
+
+  if (liberos.length) {
+    t += '\n──────────────────────────────\n';
+    t += 'Libero     Svt  Err  R+  R−  Pts\n';
+    t += '──────────────────────────────\n';
+    var lsvt=0, lerr=0, lrp=0, lrm=0, lpts=0;
+    liberos.forEach(function(n){
+      var st = s.stats[n];
+      var vsvt=st.svt||0, verr=st.err||0, vrp=st.rp||0, vrm=st.rm||0, vpts=st.pts||0;
+      lsvt+=vsvt; lerr+=verr; lrp+=vrp; lrm+=vrm; lpts+=vpts;
+      t += padR(n,9) + pad(vsvt,5) + pad(verr,5) + pad(vrp,4) + pad(vrm,4) + pad(vpts,5) + '\n';
+    });
+    t += '──────────────────────────────\n';
+    t += padR('TOTAL',9) + pad(lsvt,5) + pad(lerr,5) + pad(lrp,4) + pad(lrm,4) + pad(lpts,5) + '\n';
+  }
+  return t;
+}
+
+// Aperçu texte : même présentation tabulaire que pour un match (via buildSetBlock),
+// mais pour TOUS les matchs du tournoi, suivi du classement du tournoi complet.
+function buildTournamentPreviewText() {
+  var t = T();
+  var txt = t.name + '\n';
+  txt += 'Exporté le ' + new Date().toLocaleDateString('fr-FR') + '\n\n';
+
+  t.matches.forEach(function(m){
+    var res = matchResult(m);
+    if (res === 'NP') return; // match pas commencé : rien à montrer
+    var d = new Date(m.date).toLocaleDateString('fr-FR');
+    var resTxt = res === 'V' ? 'VICTOIRE' : (res === 'D' ? 'DÉFAITE' : (res === 'E' ? 'ÉGALITÉ' : '—'));
+    txt += '══════════════════════════════\n';
+    txt += m.name + ' — vs ' + (m.adverse||'Adverse') + '\n';
+    txt += d + ' · ' + resTxt + ' · ' + matchSetScores(m) + '\n';
+    txt += '══════════════════════════════\n\n';
+    txt += buildSetBlock(1, m) + '\n';
+    txt += buildSetBlock(2, m) + '\n';
+    txt += buildSetBlock(3, m) + '\n';
+    if (m.notes) txt += '\nNotes : ' + m.notes + '\n';
+    txt += '\n';
+  });
+
+  txt += 'Srv=Service manqué · Ast=Assist · Err=Erreur · Pts=Point · R+/R−=Réception · ErT=Srv+Err\n\n';
+  txt += tournamentRankingBlock();
+  return txt;
+}
+
+// Classement du tournoi complet (toutes joueuses, tous matchs), du plus grand nombre de
+// points au plus petit : Joueuse / ErrTot (Srv+Err) / Pts / Pts−ErrTot. Utilisé en pied
+// de l'aperçu texte du match, pour avoir la vue d'ensemble du tournoi sous la main.
+function tournamentRankingBlock() {
+  var t = T();
+  var c = tournamentCumul();
+  var names = t.names.slice().sort(function(x,y){
+    return (c.totals[y]?c.totals[y].pts:0) - (c.totals[x]?c.totals[x].pts:0);
+  });
+  var out = '══════════════════════════════\n';
+  out += 'CLASSEMENT DU TOURNOI — POINTS\n';
+  out += '══════════════════════════════\n';
+  out += padR('Joueuse',10) + pad('ErrTot',7) + pad('Pts',6) + pad('Pts−Err',8) + '\n';
+  out += '──────────────────────────────────────\n';
+  names.forEach(function(n){
+    var st = c.totals[n] || freshStats();
+    var errTot = (st.srv||0) + (st.err||0);
+    var diff = (st.pts||0) - errTot;
+    out += padR(n,10) + pad(errTot,7) + pad(st.pts||0,6) + pad(diff,8) + '\n';
+  });
+  return out;
+}
+
+// Export tournoi complet — texte
+function buildTournamentText() {
+  var t = T();
+  var d = new Date().toLocaleDateString('fr-FR');
+  var out = 'VBALL 3.8 — ' + t.name + '\n';
+  out += 'Exporté le ' + d + '\n';
+  var played=0,w=0,l=0,e=0,sw=0,sl=0;
+  t.matches.forEach(function(m){
+    var res = matchResult(m); if (res==='NP') return;
+    played++;
+    if (res==='V') w++; else if (res==='D') l++; else e++;
+    [1,2,3].forEach(function(i){
+      var s = m.sets[i];
+      var sn = s.swapped ? s.adv : s.nous;
+      var sa = s.swapped ? s.nous : s.adv;
+      if (sn===0&&sa===0) return;
+      if (sn>sa) sw++; else if (sn<sa) sl++;
+    });
+
+  });
+  out += 'Bilan : ' + played + ' match(s) — ' + w + 'V ' + l + 'D' + (e?' '+e+'E':'') + ' · Sets ' + sw + '-' + sl + '\n\n';
+  // Matches
+  t.matches.forEach(function(m, i){
+    var res = matchResult(m);
+    var resTxt = res==='V'?'VICTOIRE':res==='D'?'DÉFAITE':res==='E'?'ÉGALITÉ':'—';
+    out += '══════════════════════════════\n';
+    out += m.name + '  vs ' + (m.adverse||'—') + '  ' + resTxt + '\n';
+    out += matchSetScores(m) + '\n';
+    out += '══════════════════════════════\n\n';
+    // Sets de ce match
+    [1,2,3].forEach(function(si){
+      var s = m.sets[si];
+      var scoreNous = s.swapped ? s.adv : s.nous;
+      var scoreAdv  = s.swapped ? s.nous : s.adv;
+      if (scoreNous===0 && scoreAdv===0) return; // set non joué
+      out += 'Set ' + si + ' : ' + scoreNous + '-' + scoreAdv + '\n';
+      var sorted = m.names.filter(function(n){ return !m.absent[n] && !s.absent[n]; }).sort(function(x,y){
+        return (s.stats[y].pts||0) - (s.stats[x].pts||0);
+      });
+      sorted.forEach(function(n){
+        var st = s.stats[n];
+        var role = s.roles[n] || 'A';
+        out += '  ' + padR(n,10) + ' [' + role + '] Srv:' + (st.srv||0) + ' Svt:' + (st.svt||0) + ' Err:' + (st.err||0) + ' Pts:' + (st.pts||0);
+        if (role === 'P') out += ' Ast:' + (st.ast||0);
+        if (role === 'L') out += ' R+:' + (st.rp||0) + ' R−:' + (st.rm||0);
+        out += '\n';
+      });
+      out += '\n';
+    });
+    if (m.notes) out += 'Notes : ' + m.notes + '\n\n';
+  });
+
+  // Cumul
+  var c = tournamentCumul();
+  out += '══════════════════════════════\n';
+  out += 'CUMUL DU TOURNOI\n';
+  out += '══════════════════════════════\n';
+  var sorted = t.names.slice().sort(function(x,y){
+    return (c.totals[y]?c.totals[y].pts:0) - (c.totals[x]?c.totals[x].pts:0);
+  });
+  out += padR('Joueuse',10) + pad('MJ',3) + pad('Srv',5) + pad('Svt',5) + pad('As',4) + pad('Err',5) + pad('Pts',5) + pad('Ast',5) + pad('R+',4) + pad('R−',4) + pad('Eff%',6) + '\n';
+  out += '──────────────────────────────────────────────────────\n';
+  sorted.forEach(function(n){
+    var st = c.totals[n] || freshStats();
+    var mj = c.matchesPlayed[n] || 0;
+    var eff = '';
+    if (mj) {
+      var d = st.pts + st.err + st.srv; // basé sur pts brut (As inclus) = pointage final ; srv = service manqué compte comme erreur
+      eff = d ? Math.round(st.pts/d*100) + '%' : '';
+    }
+    var ptsDisplay = (st.pts||0) - (st.as||0); // colonne Pts affichée = sans les As
+    out += padR(n,10) + pad(mj||'-',3) + pad(mj?st.srv:'-',5) + pad(mj?st.svt:'-',5) + pad(mj?st.as:'-',4) + pad(mj?st.err:'-',5) +
+           pad(mj?ptsDisplay:'-',5) + pad(mj?st.ast:'-',5) + pad(mj?st.rp:'-',4) +
+           pad(mj?st.rm:'-',4) + pad(eff||'-',6) + '\n';
+  });
+  return out;
+}
+
+// CSV du tournoi complet
+function buildTournamentCSV() {
+  var t = T();
+  var rows = [];
+  rows.push(['VBall 3.8 - Tournoi', t.name]);
+  rows.push(['Exporté le', new Date().toLocaleDateString('fr-FR')]);
+  rows.push([]);
+
+  // Récap
+  var played=0,w=0,l=0,e=0,sw=0,sl=0;
+  t.matches.forEach(function(m){
+    var res = matchResult(m); if (res==='NP') return;
+    played++;
+    if (res==='V') w++; else if (res==='D') l++; else e++;
+    [1,2,3].forEach(function(i){
+      var s = m.sets[i];
+      var sn = s.swapped ? s.adv : s.nous;
+      var sa = s.swapped ? s.nous : s.adv;
+      if (sn===0&&sa===0) return;
+      if (sn>sa) sw++; else if (sn<sa) sl++;
+    });
+  });
+  rows.push(['Matches joués', played, 'Victoires', w, 'Défaites', l, 'Égalités', e, 'Sets', sw+'-'+sl]);
+  rows.push([]);
+
+  // Détail par set de chaque match
+  rows.push(['DÉTAIL PAR SET']);
+  rows.push(['Tournoi','Match','Adversaire','Set','Score Nous','Score Adv','Joueuse','Role','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot']);
+  t.matches.forEach(function(m){
+    [1,2,3].forEach(function(si){
+      var s = m.sets[si];
+      var sn = s.swapped ? s.adv : s.nous;
+      var sa = s.swapped ? s.nous : s.adv;
+      if (sn===0 && sa===0) return;
+      m.names.forEach(function(n){
+        if (m.absent[n]) return;
+        if (s.absent[n]) return;
+        var st = s.stats[n];
+        rows.push([
+          t.name, m.name, m.adverse||'', si, sn, sa,
+
+          n, s.roles[n]||'A',
+          st.srv||0, st.svt||0, st.as||0, st.err||0, (st.pts||0)-(st.as||0), st.ast||0, st.rp||0, st.rm||0,
+          (st.srv||0)+(st.err||0)
+        ]);
+      });
+    });
+  });
+  rows.push([]);
+
+  // Cumul par joueuse
+  rows.push(['CUMUL DU TOURNOI']);
+  rows.push(['Joueuse','Matchs joués','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot','Eff%','Pts/Match']);
+  var c = tournamentCumul();
+  var sorted = t.names.slice().sort(function(x,y){
+    return (c.totals[y]?c.totals[y].pts:0) - (c.totals[x]?c.totals[x].pts:0);
+  });
+  sorted.forEach(function(n){
+    var st = c.totals[n] || freshStats();
+    var mj = c.matchesPlayed[n] || 0;
+    if (!mj) {
+      rows.push([n, '', '', '', '', '', '', '', '', '', '', '', '']);
+      return;
+    }
+    var eft = (st.pts + st.err + st.srv) ? Math.round(st.pts/(st.pts+st.err+st.srv)*100) : ''; // basé sur pts brut (As inclus) = pointage final ; srv = service manqué compte comme erreur
+    rows.push([n, mj, st.srv, st.svt, st.as, st.err, st.pts-st.as, st.ast, st.rp, st.rm, st.srv+st.err,
+               eft !== '' ? eft + '%' : '',
+               mj ? (st.pts/mj).toFixed(2) : '']); // Pts/Match basé sur le pointage final (brut)
+  });
+
+  // Notes par match
+  var hasNotes = t.matches.some(function(m){ return m.notes; });
+  if (hasNotes) {
+
+    rows.push([]);
+    rows.push(['NOTES']);
+    t.matches.forEach(function(m){
+      if (m.notes) rows.push([m.name, m.notes]);
+    });
+  }
+
+  return rows.map(function(row){
+    return row.map(function(cell){
+      var s = String(cell == null ? '' : cell);
+      if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+        s = '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }).join(',');
+  }).join('\n');
+}
+
+// Bouton export du match courant
+document.getElementById('btnExport').onclick = function() {
+  document.getElementById('exportTa').style.display = 'none';
+  document.getElementById('exportOverlay').classList.add('show');
+};
+document.getElementById('btnExportClose').onclick = function(){
+  document.getElementById('exportOverlay').classList.remove('show');
+};
+
+// Télécharge le CSV du tournoi complet (toutes joueuses, tous matchs, tous sets)
+function downloadTournamentCsv() {
+  var csv = buildTournamentCSV();
+  var blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var fname = 'vball_tournoi_' + T().name.replace(/[^a-z0-9]/gi,'_') + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  var a = document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+// Ouvre Mail avec un résumé texte du tournoi (un mailto ne peut pas joindre le CSV
+// automatiquement ; le CSV téléchargé juste avant reste disponible à joindre à la main)
+function mailTournamentSummary() {
+  var body = buildTournamentText();
+  if (body.length > 1800) body = body.substring(0,1750) + '\n\n[Détails complets dans le CSV téléchargé]';
+  var subject = 'VBall — Tournoi ' + T().name;
+  var mailto = 'mailto:iphonedeclaude@bell.net?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  var link = document.createElement('a'); link.href = mailto; link.style.display='none';
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+document.getElementById('btnMail').onclick = function() {
+  downloadTournamentCsv();
+  setTimeout(mailTournamentSummary, 500);
+  toast('CSV téléchargé + Mail ouvert');
+};
+
+document.getElementById('btnCsv').onclick = function() {
+  downloadTournamentCsv();
+  toast('CSV du tournoi téléchargé');
+};
+
+document.getElementById('btnPreview').onclick = function(){
+  var ta = document.getElementById('exportTa');
+  ta.value = buildTournamentPreviewText();
+  ta.style.display = 'block';
+};
+
+// Export tournoi complet (bouton dans l'écran 🏆 Tournoi)
+document.getElementById('btnExportTourn').onclick = function() {
+  downloadTournamentCsv();
+  setTimeout(mailTournamentSummary, 500);
+  toast('CSV téléchargé + Mail ouvert');
+};
+
+// ═══════════════════════════════════════════
+// BACKUP / RESTORE
+// ═══════════════════════════════════════════
+
+document.getElementById('btnBackup').onclick = function() {
+  var data = JSON.stringify(DB, null, 2);
+  var blob = new Blob([data], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var fname = 'vball_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  var a = document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  toast('Sauvegarde téléchargée');
+};
+
+document.getElementById('btnRestore').onclick = function() {
+  document.getElementById('restoreFile').click();
+};
+document.getElementById('restoreFile').addEventListener('change', function(e){
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+
+  reader.onload = function(evt){
+    try {
+      var d = JSON.parse(evt.target.result);
+      if (!d || !d.tournaments) throw new Error('Format invalide');
+      confirmAsk('Restaurer cette sauvegarde ?', 'Remplacera toutes les données actuelles.', function(){
+        DB = d;
+        load(); // repasser par load pour l'intégrité
+        // Note: load lit depuis localStorage, ici on doit réappliquer manuellement
+        DB = d;
+        save();
+        // Réappliquer intégrité
+        location.reload();
+      });
+    } catch(err){
+      toast('Fichier invalide');
+    }
+  };
+  reader.readAsText(file);
+  // Reset input pour permettre le même fichier deux fois
+  e.target.value = '';
+});
+
+// ═══════════════════════════════════════════
+// EXPORT / IMPORT (menu ↑) — version appli installée
+// ═══════════════════════════════════════════
+
+// Sur iPhone (appli sur l'écran d'accueil), le téléchargement classique marche mal :
+// on ouvre plutôt le menu Partager (Enregistrer dans Fichiers, Mail, AirDrop…).
+// Ailleurs (ordinateur), on garde le téléchargement normal.
+function shareOrDownload(blob, fname) {
+  var file = null;
+  try { file = new File([blob], fname, {type: blob.type}); } catch(e){}
+  if (file && navigator.canShare && navigator.canShare({files:[file]}) && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    navigator.share({files:[file], title: fname}).catch(function(err){
+      if (err && err.name === 'AbortError') return; // l'utilisateur a fermé le menu
+      plainDownload(blob, fname);
+    });
+    return;
+  }
+  plainDownload(blob, fname);
+}
+function plainDownload(blob, fname) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+document.getElementById('btnExpCsv2').onclick = function() {
+  var blob = new Blob(['﻿'+buildTournamentCSV()], {type:'text/csv;charset=utf-8'});
+  var fname = 'vball_tournoi_' + T().name.replace(/[^a-z0-9]/gi,'_') + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  shareOrDownload(blob, fname);
+  toast('Stats CSV prêtes');
+};
+document.getElementById('btnExpJson').onclick = function() {
+  var blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  var fname = 'vball_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  shareOrDownload(blob, fname);
+  toast('Sauvegarde JSON prête');
+};
+document.getElementById('btnImportJson').onclick = function() {
+  document.getElementById('exportOverlay').classList.remove('show');
+  document.getElementById('restoreFile').click(); // même restauration que 📥 dans l'écran Tournoi
+};
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+
+load();
+renderAll();
+
+// Mode hors-ligne : enregistre l'appli dans le téléphone pour qu'elle marche sans Internet.
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+// Demande au navigateur de ne jamais effacer les données de l'appli.
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist().catch(function(){});
+}
+</script>
+</body>
+</html>
