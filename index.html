@@ -348,7 +348,7 @@ body.corr .corr-exit { display: block; }
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 3.9</span>
+    <span class="logo">VBALL 3.9.1</span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
@@ -997,16 +997,18 @@ function buildRallies(s) {
   function close(w, n, c, unk) {
     var ourEv = !!tap || ((c === 'SvR' || c === 'As') && n);
     var team = lastW() === null ? (ourEv ? 'N' : 'A') : lastW();
-    if (ourEv && team === 'A') team = 'N';          // on fait confiance à l'appui sur la serveuse
-    var srv = null, flag = '';
+    var flag = '';
+    // Appui sur une serveuse alors que l'adversaire devrait servir : un échange gagné
+    // par nous a probablement été oublié. On fait confiance à l'appui, mais on le signale.
+    if (ourEv && team === 'A') { team = 'N'; flag = 'm'; }
+    var srv = null;
     if (unk) { team = '?'; srv = '?'; }
     else if (team === 'N') {
       var who = tap || ((c === 'SvR' || c === 'As') ? n : null);
       var newTurn = !(R.length && R[R.length-1].team === 'N');
       if (newTurn) prevTurnServer = curServer;
-      if (who) { if (newTurn && prevTurnServer && who === prevTurnServer) flag = '!'; srv = who; }
-      else srv = newTurn ? '?' : curServer;
-      curServer = srv;
+      if (who) { if (newTurn && prevTurnServer && who === prevTurnServer && !flag) flag = '!'; srv = who; curServer = who; }
+      else srv = '?';   // la serveuse est appuyée à chaque service : pas d'appui = oubli
     }
     R.push({w:w, n:n||'', c:c, team:team, srv:srv, flag:flag, unk:!!unk});
     tap = null; pend = null;
@@ -1040,7 +1042,7 @@ function rallyStats(R) {
     o.bestFor = Math.max(o.bestFor, cf); o.bestAgainst = Math.max(o.bestAgainst, ca);
     if (r.team === 'N') { o.brkT++; if (r.w === 'N') o.brkW++; }
     else if (r.team === 'A') { o.soT++; if (r.w === 'N') o.soW++; }
-    if (r.c === 'EA') o.ea++; if (r.c === 'PA') o.pa++; if (r.unk || r.srv === '?') o.q++;
+    if (r.c === 'EA') o.ea++; if (r.c === 'PA') o.pa++; if (r.unk || r.srv === '?' || r.flag === 'm') o.q++;
   });
   return o;
 }
@@ -1081,7 +1083,7 @@ function renderCurve() {
   var last = R.slice(-10);
   document.getElementById('curveLast').innerHTML = last.map(function(r){
     var who = r.n ? r.n + ' ' : '';
-    return '<div class="rc'+(r.w==='N'?' w':'')+(r.unk||r.srv==='?'?' q':'')+'"><b>'+r.sn+'-'+r.sa+'</b>'+who+r.c+'</div>';
+    return '<div class="rc'+(r.w==='N'?' w':'')+(r.unk||r.srv==='?'||r.flag==='m'?' q':'')+'"><b>'+(r.flag==='m'?'? ':'')+r.sn+'-'+r.sa+'</b>'+who+r.c+'</div>';
   }).join('') || '<div style="color:#9090a8;font-size:13px;grid-column:1/-1;">-</div>';
 }
 document.getElementById('curveClose').onclick = function(){ document.getElementById('curveOverlay').classList.remove('show'); };
@@ -2087,7 +2089,7 @@ function journalRows(t) {
       buildRallies(s).forEach(function(r, k){
         rows.push([t.name, m.name, m.adverse||ADV_NONE, si, k+1, r.w==='N'?'Nous':'Adv', r.sn, r.sa,
           r.team==='N'?'Nous':(r.team==='A'?'Adv':'?'), r.srv||'', r.n, r.c,
-          r.unk ? 'ajouté par correction' : (r.srv==='?' ? 'serveuse oubliée' : (r.flag==='!' ? 'même serveuse que le tour précédent' : ''))]);
+          r.unk ? 'ajouté par correction' : (r.flag==='m' ? 'échange manquant?' : (r.srv==='?' ? 'serveuse non appuyée' : (r.flag==='!' ? 'même serveuse que le tour précédent' : '')))]);
       });
     });
   });

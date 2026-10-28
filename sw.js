@@ -3,7 +3,7 @@
 // (localStorage) et ne passent jamais par Internet.
 //
 // Pour publier une nouvelle version : changer le numéro ci-dessous.
-var CACHE = 'vball-v3.9-1';
+var CACHE = 'vball-v3.9-2';
 var FILES = [
   './',
   './index.html',
