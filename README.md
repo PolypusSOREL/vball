@@ -1,4 +1,4 @@
-﻿# VBall 3.8
+﻿# VBall 3.9
 
 Appli de stats de volleyball (PWA, fonctionne hors-ligne).
 

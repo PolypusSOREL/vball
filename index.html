@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="VBall 3.8">
+<meta name="apple-mobile-web-app-title" content="VBall 3.9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#0d0d14">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<title>VBall 3.8</title>
+<title>VBall 3.9</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
@@ -280,13 +280,67 @@ body {
   padding: 9px 20px; border-radius: 40px;
   font-size: 14px; font-weight: 600;
   transition: transform .25s ease; z-index: 400;
-  pointer-events: none;
+  pointer-events: none; white-space: nowrap;
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
 
 /* Utils */
 
 input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4f8eff; }
+
+/* 3.9 : écrans plein écran (Exporter, Aperçu texte, Courbe du set) */
+.overlay.full { align-items: stretch; background: #0d0d14; }
+.overlay.full .modal {
+  border-radius: 0; border: none; max-height: none; height: 100dvh;
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  display: flex; flex-direction: column;
+}
+.full-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex: none; }
+.full-head .modal-title { flex: 1; margin: 0; font-size: 20px; }
+.hbtn {
+  height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid #4a4a6a;
+  background: #2a2a3e; color: #fff; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.hbtn.blue { background: #4f8eff; border-color: #4f8eff; }
+.exp-sec { font-size: 13px; font-weight: 700; color: #9090a8; text-transform: uppercase; letter-spacing: .06em; margin: 18px 0 8px; }
+.exp-btn { width: 100%; height: 60px; font-size: 17px; margin-bottom: 10px; }
+.preview-pre {
+  flex: 1; overflow: auto; -webkit-overflow-scrolling: touch;
+  background: #0d0d14; color: #e0e0f0; border: 1px solid #252535; border-radius: 10px;
+  padding: 12px; margin: 0; font-family: 'Menlo', 'Courier New', monospace;
+  font-size: 12px; line-height: 1.55; white-space: pre;
+}
+
+/* 3.9 : mode correction */
+.score-num { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer; }
+.corr-banner {
+  display: none; margin-top: 6px; background: #000; color: #fff; border: 2px solid #fff;
+  border-radius: 8px; text-align: center; font-size: 18px; font-weight: 900; letter-spacing: .12em; padding: 6px 0;
+}
+body.corr .corr-banner { display: block; }
+body.corr .scoreboard { border: 3px dashed #fff; }
+body.corr .sbtn { width: 48px; height: 42px; font-size: 24px; }
+body.corr .players, body.corr .actions, body.corr .sets { opacity: .25; pointer-events: none; }
+.corr-exit {
+  display: none; margin: 18px 12px 0; width: calc(100% - 24px); height: 84px;
+  border: none; border-radius: 16px; background: #ff2a2a; color: #fff;
+  font-size: 22px; font-weight: 900; letter-spacing: .04em; font-family: inherit; cursor: pointer;
+}
+body.corr .corr-exit { display: block; }
+
+/* 3.9 : écran courbe du set */
+.curve-box { background: #16161f; border: 1px solid #252535; border-radius: 12px; padding: 8px; flex: none; }
+.curve-box svg { display: block; width: 100%; height: 230px; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; flex: none; }
+.kpi { background: #1a1a26; border-radius: 10px; padding: 8px 10px; }
+.kpi b { display: block; font-size: 22px; color: #fff; }
+.kpi span { font-size: 12px; color: #9090a8; }
+.rally-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.rc { border-radius: 7px; padding: 4px 2px; text-align: center; font-size: 12px; line-height: 1.3; border: 1px solid #4a4a6a; color: #d0d0e0; }
+.rc b { display: block; font-size: 14px; }
+.rc.w { background: #4f8eff; border-color: #4f8eff; color: #fff; }
+.rc.q { border-style: dashed; }
+.hap { position: absolute; left: -9999px; top: 0; }
 </style>
 </head>
 <body>
@@ -294,7 +348,7 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4f8eff; }
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 3.8</span>
+    <span class="logo">VBALL 3.9</span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
@@ -304,6 +358,7 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4f8eff; }
     <button class="set-btn"    id="s2">2</button>
     <button class="set-btn"    id="s3">3</button>
   </div>
+  <div class="corr-banner" id="corrBanner">CORRECTION</div>
 </div>
 
 <!-- SCORE -->
@@ -334,7 +389,7 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4f8eff; }
 </div>
 
 <!-- PLAYERS -->
-<div class="sec-title">Joueuses — <span style="color:#f5c518">Srv</span> · <span style="color:#b0b0c8">Err</span> · <span style="color:#3ea0ff">Pts</span> · <span style="color:#00e5e5">Ast</span> · <span style="color:#00ff78">R+</span> · <span style="color:#ff50b4">R−</span></div>
+<div class="sec-title">Joueuses : <span style="color:#f5c518">Srv</span> · <span style="color:#b0b0c8">Err</span> · <span style="color:#3ea0ff">Pts</span> · <span style="color:#00e5e5">Ast</span> · <span style="color:#00ff78">R+</span> · <span style="color:#ff50b4">R−</span></div>
 <div class="players" id="players"></div>
 
 <!-- ACTIONS -->
@@ -346,6 +401,8 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4f8eff; }
   <button class="abtn reset"   id="btnReset">↺</button>
   <button class="abtn exp"     id="btnExport">↑</button>
 </div>
+<button class="corr-exit" id="corrExit">CORRECTION · TERMINER</button>
+<label class="hap" id="hapLbl"><input type="checkbox" switch id="hapChk"></label>
 
 <!-- CONFIRM MODAL (generic) -->
 <div class="confirm-overlay" id="confirmOverlay">
@@ -372,26 +429,73 @@ input[type="checkbox"] { width: 20px; height: 20px; accent-color: #4f8eff; }
   </div>
 </div>
 
-<!-- MODAL EXPORT -->
-<div class="overlay" id="exportOverlay">
+<!-- MODAL EXPORT (plein écran) -->
+<div class="overlay full" id="exportOverlay">
   <div class="modal">
-    <div class="modal-title">📤 Exporter</div>
-    <div class="modal-hint">Mail, CSV et aperçu texte couvrent tout le <b style="color:#fff">tournoi complet</b> (tous les matchs).</div>
-    <div style="display:flex; flex-direction:column; gap:8px;">
-      <button class="mbtn copy" id="btnMail" style="height:52px;">📧 Envoyer par Mail</button>
-      <button class="mbtn copy" id="btnCsv"  style="height:52px; background:#00ff78; color:#0d0d14;">📊 Télécharger .csv</button>
-      <button class="mbtn copy" id="btnPreview" style="height:52px; background:#2a2a3e; color:#d0d0e0;">👁 Aperçu texte</button>
-      <div class="modal-hint" style="margin:6px 0 0;">Sauvegarde complète (tous les tournois) — à garder dans Fichiers ou à s'envoyer par mail :</div>
-      <div style="display:flex; gap:8px;">
-        <button class="mbtn copy" id="btnExpCsv2"  style="height:52px; background:rgba(0,255,120,.15); color:#00ff78; border:1px solid rgba(0,255,120,.4);">📊 Stats .csv</button>
-        <button class="mbtn copy" id="btnExpJson" style="height:52px; background:rgba(0,229,229,.15); color:#00e5e5; border:1px solid rgba(0,229,229,.4);">💾 Sauvegarde .json</button>
-      </div>
-      <button class="mbtn copy" id="btnImportJson" style="height:52px; background:#2a2a3e; color:#ffb800; border:1px solid rgba(255,184,0,.5);">📥 Importer une sauvegarde .json</button>
-      <button class="mbtn close" id="btnExportClose">Fermer</button>
+    <div class="full-head">
+      <div class="modal-title">📤 Exporter</div>
+      <button class="hbtn" id="btnExportClose">Fermer</button>
     </div>
-    <textarea id="exportTa" readonly style="display:none; margin-top:10px; width:100%; height:250px; background:#0d0d14; color:#c0c0e0; border:1px solid #252535; border-radius:10px; padding:12px; font-family:'Menlo',monospace; font-size:13px; line-height:1.6; resize:none;"></textarea>
+    <div style="overflow-y:auto; flex:1;">
+      <div class="exp-sec">Tournoi en cours</div>
+      <button class="mbtn copy exp-btn" id="btnMail">📧 Envoyer par Mail</button>
+      <button class="mbtn copy exp-btn" id="btnCsv" style="background:#00ff78; color:#0d0d14;">📊 CSV de ce tournoi</button>
+      <button class="mbtn copy exp-btn" id="btnPreview" style="background:#2a2a3e; color:#fff; border:1px solid #4a4a6a;">👁 Aperçu texte</button>
+      <div class="exp-sec">Tous les tournois</div>
+      <button class="mbtn copy exp-btn" id="btnExpCsv2" style="background:rgba(0,255,120,.15); color:#00ff78; border:1px solid rgba(0,255,120,.4);">📊 CSV de tous les tournois</button>
+      <button class="mbtn copy exp-btn" id="btnExpJson" style="background:rgba(0,229,229,.15); color:#00e5e5; border:1px solid rgba(0,229,229,.4);">💾 Sauvegarde .json</button>
+      <div class="exp-sec" style="margin-top:34px;">Restaurer</div>
+      <button class="mbtn copy exp-btn" id="btnImportJson" style="background:#2a2a3e; color:#ffb800; border:1px solid rgba(255,184,0,.5);">📥 Importer une sauvegarde .json</button>
+      <div class="modal-hint" style="margin-top:4px;">Remplace toutes les données de l'appli par celles du fichier.</div>
+    </div>
   </div>
+</div>
 
+<!-- APERÇU TEXTE (plein écran) -->
+<div class="overlay full" id="previewOverlay">
+  <div class="modal">
+    <div class="full-head">
+      <div class="modal-title">👁 Aperçu</div>
+      <button class="hbtn blue" id="previewCopy">Copier</button>
+      <button class="hbtn" id="previewClose">Fermer</button>
+    </div>
+    <pre class="preview-pre" id="previewPre"></pre>
+  </div>
+</div>
+
+<!-- COURBE DU SET (plein écran) -->
+<div class="overlay full" id="curveOverlay">
+  <div class="modal">
+    <div class="full-head">
+      <div class="modal-title" id="curveTitle">Set 1</div>
+      <button class="hbtn" id="curveClose">Fermer</button>
+    </div>
+    <div style="overflow-y:auto; flex:1;">
+      <div class="curve-box" id="curveBox"></div>
+      <div class="kpis" id="curveKpis"></div>
+      <div class="exp-sec" style="margin-top:4px;">10 derniers échanges</div>
+      <div class="rally-list" id="curveLast"></div>
+      <div class="modal-hint" style="margin-top:10px;">Bleu = point pour nous · contour = point pour eux · pointillé = échange incertain (?)</div>
+    </div>
+  </div>
+</div>
+
+<!-- FIN DE SET : score final -->
+<div class="confirm-overlay" id="finalOverlay">
+  <div class="confirm-box">
+    <h3 id="finalTitle">Set 1 terminé ?</h3>
+    <p id="finalText"></p>
+    <div id="finalEdit" style="display:none; gap:10px; justify-content:center; align-items:center; margin-bottom:16px;">
+      <div><div style="font-size:12px;color:#6ba5ff;font-weight:700;">NOUS</div><input id="finalN" type="number" inputmode="numeric" class="prompt-input" style="width:90px;text-align:center;font-size:24px;margin:4px 0 0;"></div>
+      <div style="font-size:24px;color:#9090a8;padding-top:18px;">-</div>
+      <div><div style="font-size:12px;color:#d0d0e0;font-weight:700;">ADV</div><input id="finalA" type="number" inputmode="numeric" class="prompt-input" style="width:90px;text-align:center;font-size:24px;margin:4px 0 0;"></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="cbtn confirmBlue" id="finalOk" style="flex:none;">Oui, c'est le score final</button>
+      <button class="cbtn cancel" id="finalFix" style="flex:none;">Corriger le score</button>
+      <button class="cbtn cancel" id="finalCancel" style="flex:none;">Annuler (rester sur ce set)</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL JOUEUSES -->
@@ -516,7 +620,7 @@ function freshSet(names, roles) {
     setAbsent[n] = false;
     setPos[n] = (setRoles[n] === 'L') ? 7 : 0;
   });
-  return { nous:0, adv:0, swapped:false, stats:stats, roles:setRoles, absent:setAbsent, startPos:setPos, hist:[] };
+  return { nous:0, adv:0, swapped:false, stats:stats, roles:setRoles, absent:setAbsent, startPos:setPos, hist:[], log:[], confirmed:false };
 }
 
 function freshMatch(idx, names, initialRoles) {
@@ -565,6 +669,9 @@ function freshDB() {
 
 var DB = freshDB();
 
+// 3.9 : nom affiché quand l'équipe adverse n'a pas été entrée
+var ADV_NONE = 'Adversaire non nommé';
+
 // Score automatique : quand actif (par défaut), un PTS/SRV/ERR touche aussi le score.
 // Volontairement non sauvegardé : repart toujours activé à l'ouverture de l'appli,
 // pour ne jamais laisser le score "décroché" sans que l'entraîneur s'en aperçoive.
@@ -597,6 +704,7 @@ function load() {
             }
             if (!s.absent) s.absent = {};
             if (!s.hist) s.hist = [];
+            if (!s.log) s.log = [];
             if (!s.startPos) s.startPos = {};
             m.names.forEach(function(n){
               if (!s.stats[n]) s.stats[n] = freshStats();
@@ -654,7 +762,8 @@ function snap() {
   var s = S();
   // nous/adv inclus : un Ajouter PTS/SRV/ERR touche aussi le score (voir plus bas),
   // donc Annuler doit pouvoir remettre le score comme il était, pas juste la stat.
-  s.hist.push(JSON.stringify({stats:s.stats, nous:s.nous, adv:s.adv}));
+  if (!s.log) s.log = [];
+  s.hist.push(JSON.stringify({stats:s.stats, nous:s.nous, adv:s.adv, logLen:s.log.length, confirmed:!!s.confirmed}));
   if (s.hist.length > 40) s.hist.shift();
 }
 
@@ -666,7 +775,7 @@ function renderMatchInfo() {
   var t = T(); var m = M();
   var idx = t.matches.findIndex(function(x){ return x.id === m.id; }) + 1;
   var advPart = m.adverse ? ' · ' + m.adverse : '';
-  document.getElementById('matchInfo').textContent = t.name + ' — ' + m.name + advPart;
+  document.getElementById('matchInfo').textContent = t.name + ' · ' + m.name + advPart;
 }
 
 function renderScore() {
@@ -821,18 +930,200 @@ document.getElementById('promptInput').addEventListener('keydown', function(e){
 // SCORE / SET / SWAP / STATS handlers
 // ═══════════════════════════════════════════
 
-document.getElementById('nPlus').onclick = function() {
-  snap(); S().nous = Math.max(0, S().nous+1); renderScore(); save();
+// ═══════════════════════════════════════════
+// 3.9 : JOURNAL DES ÉCHANGES
+// Chaque set garde la liste chronologique des appuis (s.log). Les côtés y sont
+// notés N (nous) / A (adversaire), peu importe l'inversion ⇄ de l'affichage.
+// ═══════════════════════════════════════════
+
+// Champ du score qui correspond à un côté logique, selon l'inversion ⇄
+function fieldOf(s, side) { return ((side === 'N') === !s.swapped) ? 'nous' : 'adv'; }
+function scoreOf(s, side) { return s[fieldOf(s, side)]; }
+function addScore(s, side, d) { var f = fieldOf(s, side); s[f] = Math.max(0, s[f] + d); }
+function logEv(ev) { var s = S(); if (!s.log) s.log = []; ev.ts = Date.now(); s.log.push(ev); }
+
+var corrMode = false;
+
+function scoreBtn(field, d) {
+  var s = S();
+  var side = (field === 'nous') ? (s.swapped ? 'A' : 'N') : (s.swapped ? 'N' : 'A');
+  if (d < 0 && s[field] <= 0) return;
+  snap();
+  s[field] = Math.max(0, s[field] + d);
+  // Un "−" est toujours une correction ; un "+" est un échange, sauf en mode correction
+  if (d < 0 || corrMode) logEv({e:'c', side:side, d:d});
+  else logEv({e:'p', side:side});
+  renderScore(); save();
+}
+document.getElementById('nPlus').onclick  = function() { scoreBtn('nous', 1); };
+document.getElementById('nMinus').onclick = function() { scoreBtn('nous', -1); };
+document.getElementById('aPlus').onclick  = function() { scoreBtn('adv', 1); };
+document.getElementById('aMinus').onclick = function() { scoreBtn('adv', -1); };
+
+// Petite vibration. iPhone : passe par un interrupteur caché (iOS 18 et +).
+function haptic() {
+  try {
+    if (navigator.vibrate && navigator.vibrate(40)) return;
+    document.getElementById('hapLbl').click();
+  } catch(e){}
+}
+
+function setCorr(on) {
+  corrMode = on;
+  document.body.classList.toggle('corr', on);
+  haptic();
+  if (on) toast('Mode correction'); else toast('Retour au mode normal');
+}
+// Appui long sur un score = entrer en mode correction
+var corrTimer = null;
+['numNous','numAdv'].forEach(function(id){
+  var el = document.getElementById(id);
+  el.addEventListener('pointerdown', function(){
+    clearTimeout(corrTimer);
+    corrTimer = setTimeout(function(){ if (!corrMode) setCorr(true); }, 550);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+    el.addEventListener(ev, function(){ clearTimeout(corrTimer); });
+  });
+  el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+});
+document.getElementById('corrExit').onclick = function(){ setCorr(false); };
+
+// Reconstitue les échanges d'un set à partir du journal
+var CODE = {pts:'Pt', as:'As', err:'Err', srv:'SvR'};
+function buildRallies(s) {
+  var R = [], tap = null, pend = null, curServer = null, prevTurnServer = null;
+  function lastW() { return R.length ? R[R.length-1].w : null; }
+  function close(w, n, c, unk) {
+    var ourEv = !!tap || ((c === 'SvR' || c === 'As') && n);
+    var team = lastW() === null ? (ourEv ? 'N' : 'A') : lastW();
+    if (ourEv && team === 'A') team = 'N';          // on fait confiance à l'appui sur la serveuse
+    var srv = null, flag = '';
+    if (unk) { team = '?'; srv = '?'; }
+    else if (team === 'N') {
+      var who = tap || ((c === 'SvR' || c === 'As') ? n : null);
+      var newTurn = !(R.length && R[R.length-1].team === 'N');
+      if (newTurn) prevTurnServer = curServer;
+      if (who) { if (newTurn && prevTurnServer && who === prevTurnServer) flag = '!'; srv = who; }
+      else srv = newTurn ? '?' : curServer;
+      curServer = srv;
+    }
+    R.push({w:w, n:n||'', c:c, team:team, srv:srv, flag:flag, unk:!!unk});
+    tap = null; pend = null;
+  }
+  (s.log || []).forEach(function(ev){
+    if (ev.e === 'svt') tap = ev.n;
+    else if (ev.e === 'st' && CODE[ev.t]) {
+      var side = (ev.t === 'pts' || ev.t === 'as') ? 'N' : 'A';
+      if (ev.sc) close(ev.sc, ev.n, CODE[ev.t]);
+      else pend = {n:ev.n, c:CODE[ev.t], side:side};
+    }
+    else if (ev.e === 'p') {
+      if (pend && pend.side === ev.side) close(ev.side, pend.n, pend.c);
+      else close(ev.side, '', ev.side === 'N' ? 'EA' : 'PA');
+    }
+    else if (ev.e === 'c') {
+      if (ev.d > 0) close(ev.side, '', '?', true);
+      else { for (var i = R.length-1; i >= 0; i--) { if (R[i].w === ev.side) { R.splice(i,1); break; } } }
+    }
+  });
+  var n = 0, a = 0;
+  R.forEach(function(r){ if (r.w === 'N') n++; else a++; r.sn = n; r.sa = a; });
+  return R;
+}
+
+function rallyStats(R) {
+  var o = {bestFor:0, bestAgainst:0, brkW:0, brkT:0, soW:0, soT:0, ea:0, pa:0, q:0};
+  var cf = 0, ca = 0;
+  R.forEach(function(r){
+    if (r.w === 'N') { cf++; ca = 0; } else { ca++; cf = 0; }
+    o.bestFor = Math.max(o.bestFor, cf); o.bestAgainst = Math.max(o.bestAgainst, ca);
+    if (r.team === 'N') { o.brkT++; if (r.w === 'N') o.brkW++; }
+    else if (r.team === 'A') { o.soT++; if (r.w === 'N') o.soW++; }
+    if (r.c === 'EA') o.ea++; if (r.c === 'PA') o.pa++; if (r.unk || r.srv === '?') o.q++;
+  });
+  return o;
+}
+
+function curveSVG(R) {
+  var W = 340, H = 230, pad = 18;
+  var diffs = [0].concat(R.map(function(r){ return r.sn - r.sa; }));
+  var mx = Math.max(3, Math.max.apply(null, diffs.map(Math.abs)));
+  var n = Math.max(diffs.length - 1, 10);
+  function x(i){ return pad + i * (W - 2*pad) / n; }
+  function y(d){ return H/2 - d * (H/2 - pad) / mx; }
+  var pts = [];
+  diffs.forEach(function(d, i){ if (i) pts.push(x(i) + ',' + y(diffs[i-1]).toFixed(1)); pts.push(x(i) + ',' + y(d).toFixed(1)); });
+  var g = '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
+  g += '<text x="4" y="14" fill="#6ba5ff" font-size="11" font-weight="700">NOUS +'+mx+'</text>';
+  g += '<text x="4" y="'+(H-4)+'" fill="#9090a8" font-size="11" font-weight="700">EUX +'+mx+'</text>';
+  g += '<line x1="'+pad+'" x2="'+(W-pad)+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="#6a6a80" stroke-dasharray="4 4"/>';
+  g += '<polyline points="'+pts.join(' ')+'" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>';
+  var last = diffs[diffs.length-1];
+  g += '<circle cx="'+x(diffs.length-1)+'" cy="'+y(last)+'" r="5" fill="#4f8eff" stroke="#fff" stroke-width="2"/>';
+  return g + '</svg>';
+}
+
+function renderCurve() {
+  var m = M(), s = S();
+  var R = buildRallies(s), st = rallyStats(R);
+  document.getElementById('curveTitle').textContent = 'Set ' + m.curSet + ' · ' + scoreOf(s,'N') + '-' + scoreOf(s,'A');
+  document.getElementById('curveBox').innerHTML = R.length ? curveSVG(R) :
+    '<div style="padding:40px 10px;text-align:center;color:#9090a8;">Aucun échange enregistré dans ce set.</div>';
+  function pc(a,b){ return b ? Math.round(a/b*100) + '%' : '-'; }
+  document.getElementById('curveKpis').innerHTML =
+    '<div class="kpi"><b>'+st.bestFor+'</b><span>plus longue série pour</span></div>'+
+    '<div class="kpi"><b>'+st.bestAgainst+'</b><span>plus long passage à vide</span></div>'+
+    '<div class="kpi"><b>'+pc(st.soW,st.soT)+'</b><span>side-out ('+st.soW+'/'+st.soT+')</span></div>'+
+    '<div class="kpi"><b>'+pc(st.brkW,st.brkT)+'</b><span>break, notre service ('+st.brkW+'/'+st.brkT+')</span></div>'+
+    '<div class="kpi"><b>'+st.ea+'</b><span>erreurs adverses</span></div>'+
+    '<div class="kpi"><b>'+st.pa+'</b><span>points gagnés par eux</span></div>';
+  var last = R.slice(-10);
+  document.getElementById('curveLast').innerHTML = last.map(function(r){
+    var who = r.n ? r.n + ' ' : '';
+    return '<div class="rc'+(r.w==='N'?' w':'')+(r.unk||r.srv==='?'?' q':'')+'"><b>'+r.sn+'-'+r.sa+'</b>'+who+r.c+'</div>';
+  }).join('') || '<div style="color:#9090a8;font-size:13px;grid-column:1/-1;">-</div>';
+}
+document.getElementById('curveClose').onclick = function(){ document.getElementById('curveOverlay').classList.remove('show'); };
+
+// ═══ Fin de set : confirmation du score final ═══
+var _finalNext = null;
+function askFinal(nextFn) {
+  var m = M(), s = S();
+  _finalNext = nextFn;
+  document.getElementById('finalTitle').textContent = 'Set ' + m.curSet + ' terminé ?';
+  document.getElementById('finalText').textContent = 'Score final : ' + scoreOf(s,'N') + '-' + scoreOf(s,'A') + ' (nous-eux)';
+  document.getElementById('finalEdit').style.display = 'none';
+  document.getElementById('finalFix').textContent = 'Corriger le score';
+  document.getElementById('finalOverlay').classList.add('show');
+}
+document.getElementById('finalCancel').onclick = function(){ document.getElementById('finalOverlay').classList.remove('show'); _finalNext = null; };
+document.getElementById('finalFix').onclick = function(){
+  var s = S(), ed = document.getElementById('finalEdit');
+  if (ed.style.display === 'none') {
+    ed.style.display = 'flex';
+    document.getElementById('finalN').value = scoreOf(s,'N');
+    document.getElementById('finalA').value = scoreOf(s,'A');
+    this.textContent = 'Appliquer ce score';
+    return;
+  }
+  var n = parseInt(document.getElementById('finalN').value, 10), a = parseInt(document.getElementById('finalA').value, 10);
+  if (isNaN(n) || isNaN(a) || n < 0 || a < 0) { toast('Score invalide'); return; }
+  snap();
+  [['N', n], ['A', a]].forEach(function(p){
+    var diff = p[1] - scoreOf(s, p[0]);
+    var d = diff > 0 ? 1 : -1;
+    for (var i = 0; i < Math.abs(diff); i++) { logEv({e:'c', side:p[0], d:d}); addScore(s, p[0], d); }
+  });
+  finishFinal();
 };
-document.getElementById('nMinus').onclick = function() {
-  snap(); S().nous = Math.max(0, S().nous-1); renderScore(); save();
-};
-document.getElementById('aPlus').onclick = function() {
-  snap(); S().adv = Math.max(0, S().adv+1); renderScore(); save();
-};
-document.getElementById('aMinus').onclick = function() {
-  snap(); S().adv = Math.max(0, S().adv-1); renderScore(); save();
-};
+document.getElementById('finalOk').onclick = function(){ finishFinal(); };
+function finishFinal() {
+  S().confirmed = true; save();
+  document.getElementById('finalOverlay').classList.remove('show');
+  renderScore();
+  var f = _finalNext; _finalNext = null; if (f) f();
+}
 document.getElementById('swapBtn').onclick = function() {
   var s = S();
   s.swapped = !s.swapped;
@@ -840,7 +1131,17 @@ document.getElementById('swapBtn').onclick = function() {
   renderScore(); save(); toast('Côtés inversés');
 };
 
-function switchSet(i) { M().curSet = i; renderAll(); save(); }
+function switchSet(i) {
+  var m = M(), s = S();
+  if (m.curSet === i) {           // appui sur le set en cours = courbe du set
+    renderCurve();
+    document.getElementById('curveOverlay').classList.add('show');
+    return;
+  }
+  var go = function(){ m.curSet = i; renderAll(); save(); };
+  if (!s.confirmed && (s.nous || s.adv)) askFinal(go);   // on quitte un set : on confirme son score
+  else go();
+}
 document.getElementById('s1').onclick = function() { switchSet(1); };
 document.getElementById('s2').onclick = function() { switchSet(2); };
 document.getElementById('s3').onclick = function() { switchSet(3); };
@@ -859,9 +1160,10 @@ function logAce(n) {
   s.stats[n].as++;
   var elPts = document.getElementById('c-'+safeId(n)+'-pts');
   if (elPts) elPts.textContent = s.stats[n].pts;
-  if (autoScoreEnabled) { s.nous++; renderScore(); }
+  logEv({e:'st', n:n, t:'as', sc: autoScoreEnabled ? 'N' : null});
+  if (autoScoreEnabled) { addScore(s, 'N', 1); renderScore(); }
   save();
-  toast('As au service — ' + n + ' 🔥');
+  toast('As au service · ' + n + ' 🔥');
   var btn = document.getElementById('c-'+safeId(n)+'-srv');
   if (btn) {
     btn.classList.remove('ace-flash'); void btn.offsetWidth; // relance l'animation si déjà en cours
@@ -902,10 +1204,14 @@ document.getElementById('players').addEventListener('click', function(e) {
   var el = document.getElementById('c-'+safeId(n)+'-'+t);
   if (el) el.textContent = s.stats[n][t];
   // Un point pour nous (PTS), ou une erreur/service manqué qui donne le point à l'adversaire
+  var sc = null;
   if (autoScoreEnabled) {
-    if (t === 'pts') { s.nous++; renderScore(); }
-    else if (t === 'srv' || t === 'err') { s.adv++; renderScore(); }
+    if (t === 'pts') sc = 'N';
+    else if (t === 'srv' || t === 'err') sc = 'A';
+    if (sc) { addScore(s, sc, 1); renderScore(); }
   }
+  if (t === 'svt') logEv({e:'svt', n:n});
+  else logEv({e:'st', n:n, t:t, sc:sc});
   save();
 });
 
@@ -919,7 +1225,7 @@ document.getElementById('btnAutoScore').onclick = function(){
   } else {
     btn.className = 'abtn autoscore off';
     btn.textContent = '🔓';
-    toast('Score automatique désactivé — les stats ne touchent plus au score');
+    toast('Score automatique désactivé : les stats ne touchent plus au score');
   }
 };
 
@@ -931,6 +1237,8 @@ document.getElementById('btnUndo').onclick = function() {
   s.stats = prev.stats;
   if (prev.nous !== undefined) s.nous = prev.nous;
   if (prev.adv  !== undefined) s.adv  = prev.adv;
+  if (prev.logLen !== undefined && s.log) s.log.length = prev.logLen;
+  if (prev.confirmed !== undefined) s.confirmed = prev.confirmed;
   activeNames().forEach(function(n) {
     var sid = safeId(n);
     var st = s.stats[n] || freshStats();
@@ -1133,7 +1441,7 @@ document.getElementById('newPlayerInput').addEventListener('keydown', function(e
 
 function renderSetPresenceModal() {
   var m = M(); var s = S();
-  document.getElementById('setPresenceTitle').textContent = '🏐 Présentes — Set ' + m.curSet;
+  document.getElementById('setPresenceTitle').textContent = '🏐 Présentes · Set ' + m.curSet;
   var list = document.getElementById('setPresenceList');
   list.innerHTML = '';
   m.names.filter(function(n){ return !m.absent[n]; }).forEach(function(n){
@@ -1268,7 +1576,7 @@ function renderTournamentScreen() {
     });
   });
   var recap = '';
-  recap += '<strong>' + played + ' match(s) joué(s)</strong> — ' + wins + 'V · ' + losses + 'D';
+  recap += '<strong>' + played + ' match(s) joué(s)</strong> · ' + wins + 'V · ' + losses + 'D';
   if (eq) recap += ' · ' + eq + 'E';
   recap += '<br>Sets : <strong>' + setsW + '-' + setsL + '</strong> · Points : ' + scoreFor + '-' + scoreAgainst;
   document.getElementById('tournRecap').innerHTML = recap;
@@ -1280,13 +1588,13 @@ function renderTournamentScreen() {
   t.matches.forEach(function(m, i){
     var res = matchResult(m);
     var setScores = matchSetScores(m);
-    var advStr = m.adverse || 'Sans adversaire';
+    var advStr = m.adverse || ADV_NONE;
     var isActive = m.id === t.activeMatchId;
 
     var item = document.createElement('div');
     item.className = 'match-item' + (isActive ? ' active' : '');
     item.setAttribute('data-mid', m.id);
-    var resTxt = res === 'NP' ? '—' : (res === 'V' ? 'V' : (res === 'D' ? 'D' : 'E'));
+    var resTxt = res === 'NP' ? '-' : (res === 'V' ? 'V' : (res === 'D' ? 'D' : 'E'));
     item.innerHTML =
       '<div class="m-name">'+
         '<b>'+m.name+'</b>'+
@@ -1592,7 +1900,7 @@ function buildSetBlock(si, matchObj) {
   var m = matchObj || M(); var s = m.sets[si];
   var scoreNous = s.swapped ? s.adv  : s.nous;
   var scoreAdv  = s.swapped ? s.nous : s.adv;
-  var result = scoreNous > scoreAdv ? 'VICTOIRE' : (scoreNous < scoreAdv ? 'DÉFAITE' : (scoreNous===0&&scoreAdv===0?'—':'ÉGALITÉ'));
+  var result = scoreNous > scoreAdv ? 'VICTOIRE' : (scoreNous < scoreAdv ? 'DÉFAITE' : (scoreNous===0&&scoreAdv===0?'-':'ÉGALITÉ'));
   var mainList = [], liberos = [];
   activeNames(s, m).forEach(function(n){
     var role = s.roles[n] || 'A';
@@ -1601,7 +1909,7 @@ function buildSetBlock(si, matchObj) {
   mainList.sort(function(x, y){ return (s.stats[y].pts||0) - (s.stats[x].pts||0); });
   liberos.sort(function(x, y){  return (s.stats[y].pts||0) - (s.stats[x].pts||0); });
 
-  var t = 'SET ' + si + '  |  ' + scoreNous + ' – ' + scoreAdv + '  ' + result + '\n';
+  var t = 'SET ' + si + '  |  ' + scoreNous + '-' + scoreAdv + '  ' + result + '\n';
   t += '────────────────────────────────────────────\n';
   t += 'Joueuse    Srv  Svt  As  Ast  Err  Pts  ErT\n';
   t += '────────────────────────────────────────────\n';
@@ -1647,14 +1955,16 @@ function buildTournamentPreviewText() {
     var res = matchResult(m);
     if (res === 'NP') return; // match pas commencé : rien à montrer
     var d = new Date(m.date).toLocaleDateString('fr-FR');
-    var resTxt = res === 'V' ? 'VICTOIRE' : (res === 'D' ? 'DÉFAITE' : (res === 'E' ? 'ÉGALITÉ' : '—'));
-    txt += '══════════════════════════════\n';
-    txt += m.name + ' — vs ' + (m.adverse||'Adverse') + '\n';
+    var resTxt = res === 'V' ? 'VICTOIRE' : (res === 'D' ? 'DÉFAITE' : (res === 'E' ? 'ÉGALITÉ' : '-'));
+    txt += '════════════════════════════\n';
+    txt += m.name + ' · vs ' + (m.adverse||ADV_NONE) + '\n';
     txt += d + ' · ' + resTxt + ' · ' + matchSetScores(m) + '\n';
     txt += '══════════════════════════════\n\n';
-    txt += buildSetBlock(1, m) + '\n';
-    txt += buildSetBlock(2, m) + '\n';
-    txt += buildSetBlock(3, m) + '\n';
+    [1,2,3].forEach(function(si){
+      var ss = m.sets[si];
+      if (!ss.nous && !ss.adv) return;   // set pas joué : on ne l'affiche pas
+      txt += buildSetBlock(si, m) + '\n';
+    });
     if (m.notes) txt += '\nNotes : ' + m.notes + '\n';
     txt += '\n';
   });
@@ -1674,7 +1984,7 @@ function tournamentRankingBlock() {
     return (c.totals[y]?c.totals[y].pts:0) - (c.totals[x]?c.totals[x].pts:0);
   });
   var out = '══════════════════════════════\n';
-  out += 'CLASSEMENT DU TOURNOI — POINTS\n';
+  out += 'CLASSEMENT DU TOURNOI · POINTS\n';
   out += '══════════════════════════════\n';
   out += padR('Joueuse',10) + pad('ErrTot',7) + pad('Pts',6) + pad('Pts−Err',8) + '\n';
   out += '──────────────────────────────────────\n';
@@ -1691,7 +2001,7 @@ function tournamentRankingBlock() {
 function buildTournamentText() {
   var t = T();
   var d = new Date().toLocaleDateString('fr-FR');
-  var out = 'VBALL 3.8 — ' + t.name + '\n';
+  var out = 'VBALL 3.9 · ' + t.name + '\n';
   out += 'Exporté le ' + d + '\n';
   var played=0,w=0,l=0,e=0,sw=0,sl=0;
   t.matches.forEach(function(m){
@@ -1707,13 +2017,13 @@ function buildTournamentText() {
     });
 
   });
-  out += 'Bilan : ' + played + ' match(s) — ' + w + 'V ' + l + 'D' + (e?' '+e+'E':'') + ' · Sets ' + sw + '-' + sl + '\n\n';
+  out += 'Bilan : ' + played + ' match(s) · ' + w + 'V ' + l + 'D' + (e?' '+e+'E':'') + ' · Sets ' + sw + '-' + sl + '\n\n';
   // Matches
   t.matches.forEach(function(m, i){
     var res = matchResult(m);
-    var resTxt = res==='V'?'VICTOIRE':res==='D'?'DÉFAITE':res==='E'?'ÉGALITÉ':'—';
+    var resTxt = res==='V'?'VICTOIRE':res==='D'?'DÉFAITE':res==='E'?'ÉGALITÉ':'-';
     out += '══════════════════════════════\n';
-    out += m.name + '  vs ' + (m.adverse||'—') + '  ' + resTxt + '\n';
+    out += m.name + '  vs ' + (m.adverse||ADV_NONE) + '  ' + resTxt + '\n';
     out += matchSetScores(m) + '\n';
     out += '══════════════════════════════\n\n';
     // Sets de ce match
@@ -1766,10 +2076,71 @@ function buildTournamentText() {
 }
 
 // CSV du tournoi complet
+// 3.9 : lignes du fil des échanges (une ligne par échange)
+var JOURNAL_HEAD = ['Tournoi','Match','Adversaire','Set','No','Gagnant','Score Nous','Score Adv','Service','Serveuse','Joueuse','Action','Note'];
+function journalRows(t) {
+  var rows = [];
+  t.matches.forEach(function(m){
+    [1,2,3].forEach(function(si){
+      var s = m.sets[si];
+      if (!s.log || !s.log.length) return;
+      buildRallies(s).forEach(function(r, k){
+        rows.push([t.name, m.name, m.adverse||ADV_NONE, si, k+1, r.w==='N'?'Nous':'Adv', r.sn, r.sa,
+          r.team==='N'?'Nous':(r.team==='A'?'Adv':'?'), r.srv||'', r.n, r.c,
+          r.unk ? 'ajouté par correction' : (r.srv==='?' ? 'serveuse oubliée' : (r.flag==='!' ? 'même serveuse que le tour précédent' : ''))]);
+      });
+    });
+  });
+  return rows;
+}
+
+function csvText(rows) {
+  return rows.map(function(row){
+    return row.map(function(cell){
+      var s = String(cell == null ? '' : cell);
+      if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) s = '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }).join(',');
+  }).join('\n');
+}
+
+// CSV de tous les tournois : détail par set + fil des échanges, pour chaque tournoi
+function buildAllCSV() {
+  var rows = [['VBall 3.9 - Tous les tournois'], ['Exporté le', new Date().toLocaleDateString('fr-FR')], []];
+  rows.push(['DÉTAIL PAR SET']);
+  rows.push(['Tournoi','Match','Adversaire','Set','Score Nous','Score Adv','Joueuse','Role','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot']);
+  DB.tournaments.forEach(function(t){ detailRows(t).forEach(function(r){ rows.push(r); }); });
+  rows.push([]);
+  rows.push(['FIL DES ÉCHANGES']);
+  rows.push(JOURNAL_HEAD);
+  DB.tournaments.forEach(function(t){ journalRows(t).forEach(function(r){ rows.push(r); }); });
+  return csvText(rows);
+}
+
+function detailRows(t) {
+  var out = [];
+  t.matches.forEach(function(m){
+    [1,2,3].forEach(function(si){
+      var s = m.sets[si];
+      var sn = s.swapped ? s.adv : s.nous;
+      var sa = s.swapped ? s.nous : s.adv;
+      if (sn===0 && sa===0) return;
+      m.names.forEach(function(n){
+        if (m.absent[n] || s.absent[n]) return;
+        var st = s.stats[n]; if (!st) return;
+        out.push([t.name, m.name, m.adverse||ADV_NONE, si, sn, sa, n, s.roles[n]||'A',
+          st.srv||0, st.svt||0, st.as||0, st.err||0, (st.pts||0)-(st.as||0), st.ast||0, st.rp||0, st.rm||0,
+          (st.srv||0)+(st.err||0)]);
+      });
+    });
+  });
+  return out;
+}
+
 function buildTournamentCSV() {
   var t = T();
   var rows = [];
-  rows.push(['VBall 3.8 - Tournoi', t.name]);
+  rows.push(['VBall 3.9 - Tournoi', t.name]);
   rows.push(['Exporté le', new Date().toLocaleDateString('fr-FR')]);
   rows.push([]);
 
@@ -1793,26 +2164,7 @@ function buildTournamentCSV() {
   // Détail par set de chaque match
   rows.push(['DÉTAIL PAR SET']);
   rows.push(['Tournoi','Match','Adversaire','Set','Score Nous','Score Adv','Joueuse','Role','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot']);
-  t.matches.forEach(function(m){
-    [1,2,3].forEach(function(si){
-      var s = m.sets[si];
-      var sn = s.swapped ? s.adv : s.nous;
-      var sa = s.swapped ? s.nous : s.adv;
-      if (sn===0 && sa===0) return;
-      m.names.forEach(function(n){
-        if (m.absent[n]) return;
-        if (s.absent[n]) return;
-        var st = s.stats[n];
-        rows.push([
-          t.name, m.name, m.adverse||'', si, sn, sa,
-
-          n, s.roles[n]||'A',
-          st.srv||0, st.svt||0, st.as||0, st.err||0, (st.pts||0)-(st.as||0), st.ast||0, st.rp||0, st.rm||0,
-          (st.srv||0)+(st.err||0)
-        ]);
-      });
-    });
-  });
+  detailRows(t).forEach(function(r){ rows.push(r); });
   rows.push([]);
 
   // Cumul par joueuse
@@ -1846,6 +2198,15 @@ function buildTournamentCSV() {
     });
   }
 
+  // 3.9 : fil des échanges
+  var jr = journalRows(t);
+  if (jr.length) {
+    rows.push([]);
+    rows.push(['FIL DES ÉCHANGES']);
+    rows.push(JOURNAL_HEAD);
+    jr.forEach(function(r){ rows.push(r); });
+  }
+
   return rows.map(function(row){
     return row.map(function(cell){
       var s = String(cell == null ? '' : cell);
@@ -1859,7 +2220,6 @@ function buildTournamentCSV() {
 
 // Bouton export du match courant
 document.getElementById('btnExport').onclick = function() {
-  document.getElementById('exportTa').style.display = 'none';
   document.getElementById('exportOverlay').classList.add('show');
 };
 document.getElementById('btnExportClose').onclick = function(){
@@ -1882,7 +2242,7 @@ function downloadTournamentCsv() {
 function mailTournamentSummary() {
   var body = buildTournamentText();
   if (body.length > 1800) body = body.substring(0,1750) + '\n\n[Détails complets dans le CSV téléchargé]';
-  var subject = 'VBall — Tournoi ' + T().name;
+  var subject = 'VBall · Tournoi ' + T().name;
   var mailto = 'mailto:iphonedeclaude@bell.net?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
   var link = document.createElement('a'); link.href = mailto; link.style.display='none';
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
@@ -1895,14 +2255,24 @@ document.getElementById('btnMail').onclick = function() {
 };
 
 document.getElementById('btnCsv').onclick = function() {
-  downloadTournamentCsv();
-  toast('CSV du tournoi téléchargé');
+  var blob = new Blob(['\ufeff'+buildTournamentCSV()], {type:'text/csv;charset=utf-8'});
+  var fname = 'vball_tournoi_' + T().name.replace(/[^a-z0-9]/gi,'_') + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  shareOrDownload(blob, fname);
+  toast('CSV de ce tournoi prêt');
 };
 
 document.getElementById('btnPreview').onclick = function(){
-  var ta = document.getElementById('exportTa');
-  ta.value = buildTournamentPreviewText();
-  ta.style.display = 'block';
+  document.getElementById('previewPre').textContent = buildTournamentPreviewText();
+  document.getElementById('previewOverlay').classList.add('show');
+};
+document.getElementById('previewClose').onclick = function(){
+  document.getElementById('previewOverlay').classList.remove('show');
+};
+document.getElementById('previewCopy').onclick = function(){
+  var txt = document.getElementById('previewPre').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(function(){ toast('Texte copié'); }, function(){ toast('Copie impossible'); });
+  } else toast('Copie impossible');
 };
 
 // Export tournoi complet (bouton dans l'écran 🏆 Tournoi)
@@ -1984,10 +2354,10 @@ function plainDownload(blob, fname) {
 }
 
 document.getElementById('btnExpCsv2').onclick = function() {
-  var blob = new Blob(['﻿'+buildTournamentCSV()], {type:'text/csv;charset=utf-8'});
-  var fname = 'vball_tournoi_' + T().name.replace(/[^a-z0-9]/gi,'_') + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  var blob = new Blob(['\ufeff'+buildAllCSV()], {type:'text/csv;charset=utf-8'});
+  var fname = 'vball_tous_les_tournois_' + new Date().toISOString().slice(0,10) + '.csv';
   shareOrDownload(blob, fname);
-  toast('Stats CSV prêtes');
+  toast('CSV de tous les tournois prêt');
 };
 document.getElementById('btnExpJson').onclick = function() {
   var blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
