@@ -542,6 +542,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
   <div class="confirm-box">
     <h3 id="finalTitle">Set 1 terminé ?</h3>
     <p id="finalText"></p>
+    <p id="finalWarn" style="display:none; margin-top:8px; padding:8px 10px; border-radius:10px; background:#3a2a00; color:#ffd166; font-weight:700; font-size:15px;"></p>
     <div id="finalEdit" style="display:none; gap:10px; justify-content:center; align-items:center; margin-bottom:16px;">
       <div><div style="font-size:12px;color:#6ba5ff;font-weight:700;">NOUS</div><input id="finalN" type="number" inputmode="numeric" class="prompt-input" style="width:90px;text-align:center;font-size:24px;margin:4px 0 0;"></div>
       <div style="font-size:24px;color:#9090a8;padding-top:18px;">-</div>
@@ -1361,12 +1362,23 @@ function renderCurve() {
 document.getElementById('curveClose').onclick = function(){ document.getElementById('curveOverlay').classList.remove('show'); };
 
 // ═══ Fin de set : confirmation du score final ═══
+// Avertit si le score ne ressemble pas à une fin de set normale (25, ou 15 au set 3, avec 2 d'écart).
+// C'est seulement un avertissement : un set à 21 reste possible, on peut confirmer quand même.
+function scoreWarning(n, a, setNo) {
+  var cible = (setNo === 3) ? 15 : 25, hi = Math.max(n, a), lo = Math.min(n, a);
+  if (hi < cible) return 'Aucune équipe n\'a ' + cible + ' points. Vérifie le score.';
+  if (hi - lo < 2) return 'Moins de 2 points d\'écart. Vérifie le score.';
+  if (hi > cible && hi - lo > 2) return 'Au-delà de ' + cible + ', l\'écart devrait être de 2. Vérifie le score.';
+  return '';
+}
 var _finalNext = null;
 function askFinal(nextFn) {
   var m = M(), s = S();
   _finalNext = nextFn;
   document.getElementById('finalTitle').textContent = 'Set ' + m.curSet + ' terminé ?';
   document.getElementById('finalText').textContent = 'Score final : ' + scoreOf(s,'N') + '-' + scoreOf(s,'A') + ' (nous-eux)';
+  var w = scoreWarning(scoreOf(s,'N'), scoreOf(s,'A'), m.curSet), we = document.getElementById('finalWarn');
+  we.textContent = w ? '⚠ ' + w : ''; we.style.display = w ? 'block' : 'none';
   document.getElementById('finalEdit').style.display = 'none';
   document.getElementById('finalFix').textContent = 'Corriger le score';
   document.getElementById('finalOverlay').classList.add('show');
