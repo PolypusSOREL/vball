@@ -924,6 +924,8 @@ function ensureLineup(s, m) {
   if (s.libero === undefined) s.libero = libs[0] || null;
   if (s.libero && libs.indexOf(s.libero) < 0) s.libero = libs[0] || null;
   if (!s.liberoFor) s.liberoFor = [];   // ajouts manuels ; les centrales (rôle C) sont toujours incluses
+  // début de set, service pas choisi, libero en 1 : c'est forcément nous à la réception
+  if (!s.serve && !setHasRallies(s) && liberoSlot(s) === 0) { s.serve = 'A'; (s.log = s.log || []).push({e:'sv', side:'A', auto:true, ts:Date.now()}); }
   return s.lineup;
 }
 // Index (0..5) où la libero joue en ce moment, ou -1
@@ -1162,6 +1164,7 @@ function renderAll() {
   renderScore();
   renderSet();
   renderPlayers();
+  renderServe();          // après renderPlayers : le service peut être déduit (libero en 1)
   document.getElementById('advInput').value = M().adverse || '';
 }
 
