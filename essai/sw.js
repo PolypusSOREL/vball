@@ -3,7 +3,7 @@
 // téléphone (localStorage, clé vb40), séparées de celles de la version principale.
 //
 // Pour publier une nouvelle version d'essai : changer le numéro ci-dessous.
-var CACHE = 'vball-essai-v4.0-13';
+var CACHE = 'vball-essai-v4.0-14';
 var FILES = [
   './',
   './index.html',

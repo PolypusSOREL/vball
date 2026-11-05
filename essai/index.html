@@ -366,7 +366,7 @@ body.corr .serve-row { display: none; }
 .ccell .pname { font-size: 17px; padding-right: 14px; touch-action: none; }
 .ccell .pbtns { gap: 3px; }
 .ccell .pbtn { height: 38px; font-size: 15px; }
-.ccell.server { border: 2px solid #f5c518; }
+.ccell.server { border-color: #f5c518; box-shadow: 0 0 0 1px #f5c518; }
 .ccell.next { border: 2px dashed #f5c518; }
 .ccell.next .pos::after { content: ' ↻'; color: #f5c518; }
 .ccell.bench { border: 1px dashed #6a6a80; background: #141420; }
@@ -391,7 +391,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 .bench-lbl { font-size: 10px; font-weight: 800; letter-spacing: .1em; color: #9090a8; margin-right: 4px; }
 .bench-empty { font-size: 12px; color: #6a6a80; }
 .chip { background: #2a2a3e; border: 1px solid #4a4a6a; color: #fff; font-weight: 700; font-size: 15px; padding: 7px 12px; border-radius: 20px; touch-action: none; user-select: none; -webkit-user-select: none; }
-.rot-btns { margin-left: auto; display: flex; gap: 6px; }
+.rot-btns { margin: 6px 12px 0; display: flex; justify-content: flex-end; gap: 6px; }
 .rot-btn { height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #4f8eff; background: #1d2a48; color: #fff; font-weight: 700; font-size: 16px; font-family: inherit; }
 .rot-btn.back { padding: 0 12px; font-size: 20px; border-color: #4a4a6a; background: #2a2a3e; }
 .chip i { font-style: normal; font-size: 11px; color: #9090a8; font-weight: 600; }
@@ -404,7 +404,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 13</span></span>
+    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 14</span></span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
@@ -1066,13 +1066,14 @@ function renderPlayers() {
   if (ls >= 0) chips.push({n:lu[ls], note:'libero'});
   activeNames(s, m).forEach(function(n){ if (roleOf(s, n) === 'L' && n !== s.libero) chips.push({n:n, note:'L'}); });
   if (s.libero && ls < 0) chips.push({n:s.libero, note:'L, en attente'});
+  // boutons de rotation sur leur propre ligne, juste sous le terrain : ils ne bougent jamais
+  html += '<div class="rot-btns"><button class="rot-btn back" onclick="rotateTeam(-1)" title="Reculer d\'une rotation">↺</button>'+
+          '<button class="rot-btn" onclick="rotateTeam(1)">↻ Rotation</button></div>';
   html += '<div class="bench-zone" data-benchzone="1"><span class="bench-lbl">BANC</span>';
   if (!chips.length) html += '<span class="bench-empty">aucune</span>';
   chips.forEach(function(c){
     html += '<span class="chip" data-bench="'+c.n+'" data-drag="'+c.n+'">'+c.n+(c.note ? ' <i>('+c.note+')</i>' : '')+'</span>';
   });
-  html += '<span class="rot-btns"><button class="rot-btn back" onclick="rotateTeam(-1)" title="Reculer d\'une rotation">↺</button>'+
-          '<button class="rot-btn" onclick="rotateTeam(1)">↻ Rotation</button></span>';
   html += '</div>';
   el.innerHTML = html;
 }
