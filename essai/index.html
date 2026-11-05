@@ -391,6 +391,9 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 .bench-lbl { font-size: 10px; font-weight: 800; letter-spacing: .1em; color: #9090a8; margin-right: 4px; }
 .bench-empty { font-size: 12px; color: #6a6a80; }
 .chip { background: #2a2a3e; border: 1px solid #4a4a6a; color: #fff; font-weight: 700; font-size: 15px; padding: 7px 12px; border-radius: 20px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.rot-btns { margin-left: auto; display: flex; gap: 6px; }
+.rot-btn { height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #4f8eff; background: #1d2a48; color: #fff; font-weight: 700; font-size: 16px; font-family: inherit; }
+.rot-btn.back { padding: 0 12px; font-size: 20px; border-color: #4a4a6a; background: #2a2a3e; }
 .chip i { font-style: normal; font-size: 11px; color: #9090a8; font-weight: 600; }
 .adverse-input { min-width: 0; width: 100%; }
 .prow.special.server-row { border: 2px solid #f5c518; }
@@ -401,7 +404,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 9</span></span>
+    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 10</span></span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
@@ -1065,8 +1068,22 @@ function renderPlayers() {
   chips.forEach(function(c){
     html += '<span class="chip" data-bench="'+c.n+'" data-drag="'+c.n+'">'+c.n+(c.note ? ' <i>('+c.note+')</i>' : '')+'</span>';
   });
+  html += '<span class="rot-btns"><button class="rot-btn back" onclick="rotateTeam(-1)" title="Reculer d\'une rotation">↺</button>'+
+          '<button class="rot-btn" onclick="rotateTeam(1)">↻ Rotation</button></span>';
   html += '</div>';
   el.innerHTML = html;
+}
+// Bouton Rotation : tout le monde avance d'une position (2 → 1, 1 → 6). ↺ recule d'une position.
+// Rien n'est compté; le service ne change pas.
+function rotateTeam(dir) {
+  var s = S(); ensureLineup(s, M());
+  snap();
+  var lu = s.lineup;
+  s.lineup = dir > 0 ? lu.slice(1).concat(lu.slice(0, 1)) : lu.slice(-1).concat(lu.slice(0, -1));
+  lineupChanged(s);
+  logEv({e:'lu', lu:s.lineup.slice(), libero:s.libero, liberoFor:(s.liberoFor||[]).slice()});
+  renderPlayers(); save();
+  toast((dir > 0 ? 'Rotation : ' : 'Rotation arrière : ') + (s.lineup[0] || '?') + ' en 1');
 }
 
 // ═══ Glisser-déposer : placement, remplacements, libero ═══
