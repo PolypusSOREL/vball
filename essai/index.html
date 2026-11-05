@@ -376,8 +376,20 @@ body.corr .serve-row { display: none; }
 .drop-ok { outline: 3px solid #4f8eff; outline-offset: 1px; }
 .drag-ghost { position: fixed; z-index: 500; pointer-events: none; background: #4f8eff; color: #fff; font-weight: 800;
   padding: 8px 14px; border-radius: 10px; font-size: 16px; transform: translate(-50%, -130%); }
-body.corr .court, body.corr .bottom-rows { opacity: .25; pointer-events: none; }
+body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; pointer-events: none; }
 #players { display: block; padding: 0; }
+.role-tag.C { background: rgba(255,184,0,.2); color: #ffb800; }
+.ccell .pname .role-tag { font-size: 9px; padding: 1px 4px; }
+.ccell .pbtns { flex: 1; align-items: stretch; }
+.ccell:not(.four) .pbtn { height: auto; min-height: 66px; font-size: 18px; }
+.ccell.four .pbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.ccell.four .pbtn { height: 34px; }
+.ccell.lib { border-color: #00ff78; }
+.bench-zone { margin: 8px 12px 0; padding: 8px; border: 1px dashed #4a4a6a; border-radius: 11px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 48px; }
+.bench-lbl { font-size: 10px; font-weight: 800; letter-spacing: .1em; color: #9090a8; margin-right: 4px; }
+.bench-empty { font-size: 12px; color: #6a6a80; }
+.chip { background: #2a2a3e; border: 1px solid #4a4a6a; color: #fff; font-weight: 700; font-size: 15px; padding: 8px 12px; border-radius: 20px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.chip i { font-style: normal; font-size: 11px; color: #9090a8; font-weight: 600; }
 .adverse-input { min-width: 0; width: 100%; }
 .prow.special.server-row { border: 2px solid #f5c518; }
 </style>
@@ -545,7 +557,7 @@ body.corr .court, body.corr .bottom-rows { opacity: .25; pointer-events: none; }
 <div class="overlay" id="playersOverlay">
   <div class="modal">
     <div class="modal-title">⚙ Gérer les joueuses</div>
-    <div class="modal-hint">Le rôle A/P/L change pour <b style="color:#fff">le set actif</b> seulement.<br>Décoche pour marquer une joueuse absente de ce match.</div>
+    <div class="modal-hint">Rôle : A attaquante, P passeuse, L libero, C centrale (remplacée par la libero en arrière). Il change pour <b style="color:#fff">le set actif</b> seulement.<br>Décoche pour marquer une joueuse absente de ce match.</div>
     <div id="playersList" style="display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto; margin-bottom:12px;"></div>
     <div style="display:flex; gap:6px; margin-bottom:10px;">
       <input id="newPlayerInput" type="text" placeholder="Nouvelle joueuse…" maxlength="12"
@@ -806,7 +818,7 @@ function snap() {
   // nous/adv inclus : un Ajouter PTS/SRV/ERR touche aussi le score (voir plus bas),
   // donc Annuler doit pouvoir remettre le score comme il était, pas juste la stat.
   if (!s.log) s.log = [];
-  s.hist.push(JSON.stringify({stats:s.stats, nous:s.nous, adv:s.adv, logLen:s.log.length, confirmed:!!s.confirmed, lineup:s.lineup||null, serve:s.serve||null, needRot:!!s.needRot}));
+  s.hist.push(JSON.stringify({stats:s.stats, nous:s.nous, adv:s.adv, logLen:s.log.length, confirmed:!!s.confirmed, lineup:s.lineup||null, serve:s.serve||null, libero:(s.libero===undefined?'__u':s.libero), liberoFor:s.liberoFor||null}));
   if (s.hist.length > 40) s.hist.shift();
 }
 
@@ -844,81 +856,108 @@ function renderSet() {
 }
 
 // ═══════════════════════════════════════════
-// 4.0 : TERRAIN, ROTATION, BANC
-// lineup[0..5] = positions 1 à 6 (1 = serveuse, arrière droite).
-// Affichage : avant 4-3-2, arrière 5-6-1. Passeuse et libero en bas.
+// 4.0 : TERRAIN, ROTATION, LIBERO, BANC, SERVICE AUTOMATIQUE
+// lineup[0..5] = les 6 joueuses de la rotation, positions 1 à 6 (1 = serveuse).
+// La libero n'est pas dans la rotation : elle remplace à l'affichage une joueuse
+// de s.liberoFor (les centrales, rôle C) quand celle-ci est en arrière
+// (positions 5 et 6, et 1 quand ce n'est pas nous qui servons).
 // ═══════════════════════════════════════════
 
 function roleOf(s, n) { return (s.roles && s.roles[n]) || 'A'; }
 function courtCandidates(s, m) {
-  // Joueuses présentes qui peuvent être sur le terrain (tout sauf la libero)
   return activeNames(s, m).filter(function(n){ return roleOf(s, n) !== 'L'; });
 }
 function ensureLineup(s, m) {
   s = s || S(); m = m || M();
   var cand = courtCandidates(s, m);
-  if (s.lineup && s.lineup.length === 6) {
-    // retirer les absentes, sans déplacer les autres
-    s.lineup = s.lineup.map(function(n){ return (n && cand.indexOf(n) >= 0) ? n : null; });
-    return s.lineup;
+  if (!(s.lineup && s.lineup.length === 6)) {
+    var lu = null;
+    for (var k = m.curSet - 1; k >= 1 && !lu; k--) {
+      var ps = m.sets[k];
+      if (ps && (ps.lineupStart || ps.lineup)) lu = (ps.lineupStart || ps.lineup).slice();
+    }
+    if (!lu && s.startPos) {
+      var t = [null,null,null,null,null,null], ok = false;
+      cand.forEach(function(n){ var p = s.startPos[n]; if (p >= 1 && p <= 6 && !t[p-1]) { t[p-1] = n; ok = true; } });
+      if (ok) lu = t;
+    }
+    if (!lu) {
+      var setters = cand.filter(function(n){ return roleOf(s, n) === 'P'; });
+      var others = cand.filter(function(n){ return roleOf(s, n) !== 'P'; });
+      lu = setters.slice(0, 1).concat(others).slice(0, 6);
+    }
+    while (lu.length < 6) lu.push(null);
+    s.lineup = lu;
   }
-  var lu = null;
-  // 1) reprendre l'alignement de départ du set précédent
-  for (var k = m.curSet - 1; k >= 1 && !lu; k--) {
-    var ps = m.sets[k];
-    if (ps && (ps.lineupStart || ps.lineup)) lu = (ps.lineupStart || ps.lineup).slice();
-  }
-  // 2) sinon, les positions de départ entrées dans ⚙
-  if (!lu && s.startPos) {
-    var t = [null,null,null,null,null,null], ok = false;
-    cand.forEach(function(n){ var p = s.startPos[n]; if (p >= 1 && p <= 6 && !t[p-1]) { t[p-1] = n; ok = true; } });
-    if (ok) lu = t;
-  }
-  // 3) sinon : la passeuse en 1, puis les attaquantes dans l'ordre de la liste
-  if (!lu) {
-    var setters = cand.filter(function(n){ return roleOf(s, n) === 'P'; });
-    var others = cand.filter(function(n){ return roleOf(s, n) !== 'P'; });
-    lu = setters.slice(0, 1).concat(others).slice(0, 6);
-  }
-  while (lu.length < 6) lu.push(null);
-  lu = lu.map(function(n){ return (n && cand.indexOf(n) >= 0) ? n : null; });
-  // compléter les trous avec les joueuses disponibles
-  var hasSetter = lu.some(function(x){ return x && roleOf(s, x) === 'P'; });
+  s.lineup = s.lineup.map(function(n){ return (n && cand.indexOf(n) >= 0) ? n : null; });
+  var hasSetter = s.lineup.some(function(x){ return x && roleOf(s, x) === 'P'; });
   cand.forEach(function(n){
-    if (lu.indexOf(n) >= 0) return;
-    var i = lu.indexOf(null); if (i < 0) return;
+    if (s.lineup.indexOf(n) >= 0) return;
+    var i = s.lineup.indexOf(null); if (i < 0) return;
     if (roleOf(s, n) === 'P') { if (hasSetter) return; hasSetter = true; }
-    lu[i] = n;
+    s.lineup[i] = n;
   });
-  s.lineup = lu;
-  if (!s.lineupStart) s.lineupStart = lu.slice();
-  return lu;
+  if (!s.lineupStart) s.lineupStart = s.lineup.slice();
+  // libero
+  var libs = activeNames(s, m).filter(function(n){ return roleOf(s, n) === 'L'; });
+  if (s.libero === undefined) s.libero = libs[0] || null;
+  if (s.libero && libs.indexOf(s.libero) < 0) s.libero = libs[0] || null;
+  if (!s.liberoFor) s.liberoFor = cand.filter(function(n){ return roleOf(s, n) === 'C'; });
+  return s.lineup;
+}
+// Index (0..5) où la libero joue en ce moment, ou -1
+function liberoSlot(s) {
+  if (!s.libero || !s.liberoFor || !s.liberoFor.length) return -1;
+  var back = [4, 5]; if (s.serve !== 'N') back.push(0);
+  for (var k = 0; k < back.length; k++) {
+    var n = s.lineup[back[k]];
+    if (n && s.liberoFor.indexOf(n) >= 0) return back[k];
+  }
+  return -1;
 }
 function setHasRallies(s) { return (s.log || []).some(function(ev){ return ev.e === 'st' || ev.e === 'p' || ev.e === 'svt'; }); }
 function lineupChanged(s) { if (!setHasRallies(s)) s.lineupStart = s.lineup.slice(); }
-
-// La fille qui sert passe en position 1 ; les autres suivent la rotation
-function serverTapped(n) {
-  var s = S(), m = M();
-  if (roleOf(s, n) === 'L') return;
-  ensureLineup(s, m);
+function rotateTo(s, n) {
   var i = s.lineup.indexOf(n);
   if (i > 0) s.lineup = s.lineup.slice(i).concat(s.lineup.slice(0, i));
-  s.serve = 'N'; s.needRot = false;
-  renderPlayers(); renderServe();
+  return i >= 0;
 }
-// Après chaque échange, le service va au gagnant
-function rallyWon(side) {
-  var s = S();
-  if (side === 'N' && s.serve === 'A') s.needRot = true;   // side-out : la suivante doit servir
-  if (side === 'A') s.needRot = false;
+
+// Appui sur le petit chiffre : CORRECTION « c'est elle qui sert » (rien n'est compté)
+function serverTapped(n) {
+  var s = S(), m = M();
+  ensureLineup(s, m);
+  if (!rotateTo(s, n)) { toast(n + ' n\'est pas sur le terrain'); return; }
+  s.serve = 'N';
+  logEv({e:'sv', side:'N'});
+  renderPlayers(); renderServe();
+  toast(n + ' au service');
+}
+// Fin d'un échange : compte le service de la fille en 1, puis le service va au gagnant.
+// server = la fille qui a servi si on le sait (service raté, As), sinon la position 1.
+function rallyEnd(side, server) {
+  var s = S(); ensureLineup(s, M());
+  if (server && s.lineup.indexOf(server) > 0) { rotateTo(s, server); s.serve = 'N'; }
+  if (server && s.serve !== 'N' && s.lineup.indexOf(server) === 0) s.serve = 'N';
+  if (s.serve === 'N' && s.lineup[0]) {
+    var who = s.lineup[0];
+    if (s.stats[who]) {
+      s.stats[who].svt++;
+      var b = document.getElementById('c-'+safeId(who)+'-svt'); if (b) b.textContent = s.stats[who].svt;
+    }
+    // le service est noté juste avant l'événement qui a fermé l'échange
+    s.log.splice(s.log.length - 1, 0, {e:'svt', n:who, auto:true, ts:Date.now()});
+  }
+  if (side === 'N' && s.serve === 'A') {             // side-out : rotation automatique
+    s.lineup = s.lineup.slice(1).concat(s.lineup.slice(0, 1));
+  }
   s.serve = side;
   renderPlayers(); renderServe();
 }
 function setServe(side) {
   var s = S();
   snap();
-  s.serve = side; s.needRot = false;
+  s.serve = side;
   logEv({e:'sv', side:side});
   renderPlayers(); renderServe(); save();
 }
@@ -944,12 +983,12 @@ function statBtns(n, role, d) {
   if (role === 'P') b += '<button class="pbtn ast has-tag" data-n="'+n+'" data-t="ast"><span class="pbtn-tag">Ast</span><span id="c-'+sid+'-ast">'+d.ast+'</span></button>';
   return b;
 }
-function nameDiv(n, role, d, extra) {
+function nameDiv(n, role, d) {
   var sid = safeId(n);
   var badgeKey = (role === 'L') ? 'def' : 'svt';
-  var tag = (role === 'P' || role === 'L') ? '<span class="role-tag '+role+'">'+role+'</span>' : '';
+  var tag = (role === 'P' || role === 'L' || role === 'C') ? '<span class="role-tag '+role+'">'+role+'</span>' : '';
   return '<div class="pname" data-n="'+n+'" data-t="svt" data-drag="'+n+'">'+n+tag+
-    '<span class="svt-badge" id="c-'+sid+'-'+badgeKey+'">'+d[badgeKey]+'</span>'+(extra||'')+'</div>';
+    '<span class="svt-badge" id="c-'+sid+'-'+badgeKey+'">'+d[badgeKey]+'</span></div>';
 }
 
 function renderPlayers() {
@@ -957,81 +996,53 @@ function renderPlayers() {
   var el = document.getElementById('players');
   el.innerHTML = '';
   var lu = ensureLineup(s, m);
-  var cand = courtCandidates(s, m);
-  var setter = lu.filter(function(n){ return n && roleOf(s, n) === 'P'; })[0] || null;
-  var bench = cand.filter(function(n){ return lu.indexOf(n) < 0; });
-  var benchInHole = setter ? bench.shift() : null;   // la 1re fille au banc prend le trou de la passeuse
-  var liberos = activeNames(s, m).filter(function(n){ return roleOf(s, n) === 'L'; });
-
-  var court = document.createElement('div'); court.className = 'court';
-  var html = '<div class="net">FILET</div><div class="court-grid">';
-  var order = [3, 2, 1, 4, 5, 0];   // index lineup : 4 3 2 / 5 6 1
+  var ls = liberoSlot(s);
+  var html = '<div class="court"><div class="net">FILET</div><div class="court-grid">';
+  var order = [3, 2, 1, 4, 5, 0];   // 4 3 2 / 5 6 1
   order.forEach(function(i, k){
     if (k === 3) html += '</div><div class="court-gap"></div><div class="court-grid">';
-    var n = lu[i];
-    var cls = 'ccell';
-    if (i === 0 && s.serve === 'N') cls += ' server';
-    if (i === 1 && s.needRot) cls += ' next';
+    var n = (i === ls) ? s.libero : lu[i];
+    var role = n ? roleOf(s, n) : 'A';
+    var cls = 'ccell' + (i === 0 && s.serve === 'N' ? ' server' : '') + (role === 'P' || role === 'L' ? ' four' : '') + (i === ls ? ' lib' : '');
     var pos = '<span class="pos">'+(i+1)+'</span>';
     if (!n) { html += '<div class="'+cls+' empty" data-slot="'+i+'">'+pos+'vide</div>'; return; }
-    if (roleOf(s, n) === 'P') {
-      // case de la passeuse : on y montre la fille au banc
-      if (benchInHole) {
-        var db = s.stats[benchInHole] || freshStats();
-        html += '<div class="'+cls+' bench" data-bench="'+benchInHole+'" data-slot-p="'+i+'">'+pos+
-          '<div class="tag">banc</div>'+nameDiv(benchInHole, 'A', db)+
-          '<div class="pbtns">'+statBtns(benchInHole, 'A', db)+'</div></div>';
-      } else {
-        html += '<div class="'+cls+' empty" data-slot="'+i+'">'+pos+n+' (P) ↓</div>';
-      }
-      return;
-    }
     var d = s.stats[n] || freshStats();
-    html += '<div class="'+cls+'" data-slot="'+i+'">'+pos+nameDiv(n, roleOf(s,n), d)+
-      '<div class="pbtns">'+statBtns(n, roleOf(s,n), d)+'</div></div>';
+    html += '<div class="'+cls+'" data-slot="'+i+'">'+pos+nameDiv(n, role, d)+
+      '<div class="pbtns">'+statBtns(n, role, d)+'</div></div>';
+  });
+  html += '</div></div>';
+  // banc : remplaçantes, centrale remplacée par la libero, libero au banc
+  var chips = [];
+  courtCandidates(s, m).forEach(function(n){ if (lu.indexOf(n) < 0) chips.push({n:n, note:''}); });
+  if (ls >= 0) chips.push({n:lu[ls], note:'libero'});
+  activeNames(s, m).forEach(function(n){ if (roleOf(s, n) === 'L' && n !== s.libero) chips.push({n:n, note:'L'}); });
+  if (s.libero && ls < 0) chips.push({n:s.libero, note:'L, en attente'});
+  html += '<div class="bench-zone" data-benchzone="1"><span class="bench-lbl">BANC</span>';
+  if (!chips.length) html += '<span class="bench-empty">aucune</span>';
+  chips.forEach(function(c){
+    html += '<span class="chip" data-bench="'+c.n+'" data-drag="'+c.n+'">'+c.n+(c.note ? ' <i>('+c.note+')</i>' : '')+'</span>';
   });
   html += '</div>';
-  court.innerHTML = html;
-  el.appendChild(court);
-
-  var bottom = document.createElement('div'); bottom.className = 'bottom-rows';
-  var rows = '';
-  if (setter) {
-    var dp = s.stats[setter] || freshStats();
-    var sl = lu.indexOf(setter);
-    rows += '<div class="prow special'+(sl === 0 && s.serve === 'N' ? ' server-row' : '')+'" data-slot="'+sl+'">'+nameDiv(setter, 'P', dp)+
-      '<div class="pbtns">'+statBtns(setter, 'P', dp)+'</div></div>';
-  }
-  liberos.forEach(function(n){
-    var d = s.stats[n] || freshStats();
-    rows += '<div class="prow special">'+nameDiv(n, 'L', d)+'<div class="pbtns">'+statBtns(n, 'L', d)+'</div></div>';
-  });
-  bench.forEach(function(n){
-    var d = s.stats[n] || freshStats();
-    rows += '<div class="prow special" data-bench="'+n+'">'+nameDiv(n, roleOf(s,n), d, ' <span class="tag" style="font-size:10px;color:#9090a8;">banc</span>')+
-      '<div class="pbtns">'+statBtns(n, roleOf(s,n), d)+'</div></div>';
-  });
-  bottom.innerHTML = rows;
-  el.appendChild(bottom);
+  el.innerHTML = html;
 }
 
-// ═══ Glisser-déposer : placement et remplacements ═══
+// ═══ Glisser-déposer : placement, remplacements, libero ═══
 var drag = null, dragJustEnded = false;
 function dropTarget(x, y) {
   var t = document.elementFromPoint(x, y);
-  return t ? t.closest('[data-slot],[data-bench],[data-slot-p]') : null;
+  if (!t) return null;
+  return t.closest('[data-slot]') || t.closest('[data-bench]') || t.closest('[data-benchzone]');
 }
 document.getElementById('players').addEventListener('pointerdown', function(e){
   var nm = e.target.closest('[data-drag]');
   if (!nm || corrMode) return;
-  var n = nm.getAttribute('data-drag');
-  if (roleOf(S(), n) === 'L') return;
-  drag = {n:n, x:e.clientX, y:e.clientY, on:false, ghost:null, over:null, id:e.pointerId};
+  drag = {n:nm.getAttribute('data-drag'), x:e.clientX, y:e.clientY, on:false, ghost:null, over:null};
 });
 window.addEventListener('pointermove', function(e){
   if (!drag) return;
   if (!drag.on && Math.abs(e.clientX-drag.x) + Math.abs(e.clientY-drag.y) > 12) {
     drag.on = true;
+    clearTimeout(aceTimer);
     drag.ghost = document.createElement('div'); drag.ghost.className = 'drag-ghost'; drag.ghost.textContent = drag.n;
     document.body.appendChild(drag.ghost);
   }
@@ -1058,22 +1069,50 @@ window.addEventListener('pointercancel', function(){ if (drag && drag.ghost) dra
 function doSwap(src, t) {
   var s = S(); ensureLineup(s, M());
   var lu = s.lineup.slice();
-  var srcSlot = lu.indexOf(src);
+  var ls = liberoSlot(s);
+  var srcIsLib = roleOf(s, src) === 'L';
   var tSlot = t.hasAttribute('data-slot') ? parseInt(t.getAttribute('data-slot'), 10) : null;
   var tBench = t.getAttribute('data-bench');
+  var toBench = !!(tBench || t.hasAttribute('data-benchzone'));
   if (tBench === src) return;
-  snap();
-  if (tSlot !== null && !isNaN(tSlot)) {
-    if (srcSlot >= 0) { var tmp = lu[tSlot]; lu[tSlot] = src; lu[srcSlot] = tmp; }
-    else lu[tSlot] = src;                      // la fille du banc entre, l'autre va au banc
-  } else if (tBench) {
-    if (srcSlot >= 0) lu[srcSlot] = tBench;    // la fille du terrain va au banc
-    else return;
-  } else return;
-  s.lineup = lu; lineupChanged(s);
-  logEv({e:'lu', lu:lu.slice()});
+  var msg = 'Alignement modifié';
+  if (srcIsLib) {
+    if (toBench) {
+      if (s.libero !== src) return;
+      snap(); s.libero = null; msg = src + ' au banc';
+    } else if (tSlot !== null) {
+      if ([1, 2, 3].indexOf(tSlot) >= 0) { toast('La libero ne peut pas jouer à l\'avant'); return; }
+      if (tSlot === 0 && s.serve === 'N') { toast('La libero ne remplace pas la serveuse'); return; }
+      if (!lu[tSlot]) return;
+      snap(); s.libero = src; s.liberoFor = [lu[tSlot]]; msg = src + ' remplace ' + lu[tSlot];
+    } else return;
+  } else {
+    var srcSlot = lu.indexOf(src);
+    if (tSlot !== null && !isNaN(tSlot)) {
+      snap();
+      if (tSlot === ls) {
+        // on glisse quelqu'un sur la libero : la libero sort
+        if (lu[tSlot] !== src) {
+          if (srcSlot >= 0) { var x = lu[tSlot]; lu[tSlot] = src; lu[srcSlot] = x; }
+          else lu[tSlot] = src;
+        }
+        s.libero = null; msg = 'Libero au banc';
+      } else if (srcSlot >= 0) { var tmp = lu[tSlot]; lu[tSlot] = src; lu[srcSlot] = tmp; }
+      else { msg = src + ' entre, ' + (lu[tSlot] || '') + ' au banc'; lu[tSlot] = src; }
+    } else if (tBench) {
+      if (srcSlot < 0) return;
+      if (roleOf(s, tBench) === 'L') return;
+      snap();
+      var bs = lu.indexOf(tBench);
+      if (bs >= 0) { lu[bs] = src; lu[srcSlot] = tBench; }   // centrale remplacée par la libero
+      else { lu[srcSlot] = tBench; msg = tBench + ' entre, ' + src + ' au banc'; }
+    } else return;
+    s.lineup = lu;
+  }
+  lineupChanged(s);
+  logEv({e:'lu', lu:s.lineup.slice(), libero:s.libero, liberoFor:(s.liberoFor||[]).slice()});
   renderPlayers(); save();
-  toast('Alignement modifié');
+  toast(msg);
 }
 
 function renderAll() {
@@ -1167,7 +1206,7 @@ function scoreBtn(field, d) {
   s[field] = Math.max(0, s[field] + d);
   // Un "−" est toujours une correction ; un "+" est un échange, sauf en mode correction
   if (d < 0 || corrMode) logEv({e:'c', side:side, d:d});
-  else { logEv({e:'p', side:side}); rallyWon(side); }
+  else { logEv({e:'p', side:side}); rallyEnd(side, null); }
   renderScore(); save();
 }
 document.getElementById('nPlus').onclick  = function() { scoreBtn('nous', 1); };
@@ -1383,7 +1422,7 @@ function logAce(n) {
   if (elPts) elPts.textContent = s.stats[n].pts;
   logEv({e:'st', n:n, t:'as', sc: autoScoreEnabled ? 'N' : null});
   if (autoScoreEnabled) { addScore(s, 'N', 1); renderScore(); }
-  serverTapped(n); rallyWon('N');
+  if (autoScoreEnabled) rallyEnd('N', n);
   save();
   toast('As au service · ' + n + ' 🔥');
   var btn = document.getElementById('c-'+safeId(n)+'-srv');
@@ -1421,6 +1460,9 @@ document.getElementById('players').addEventListener('click', function(e) {
   // pertinence pour elle) compte plutôt les fois où elle touche la balle en premier
   // en défense (def) — même geste, donnée différente selon le rôle.
   if (t === 'svt' && (S().roles[n] || 'A') === 'L') t = 'def';
+  if (t === 'svt') {               // 4.0 : le service est compté tout seul ; l'appui corrige la serveuse
+    snap(); serverTapped(n); save(); return;
+  }
   snap();
   var s = S();
   s.stats[n][t]++;
@@ -1433,12 +1475,8 @@ document.getElementById('players').addEventListener('click', function(e) {
     else if (t === 'srv' || t === 'err') sc = 'A';
     if (sc) { addScore(s, sc, 1); renderScore(); }
   }
-  if (t === 'svt') { logEv({e:'svt', n:n}); serverTapped(n); }
-  else {
-    logEv({e:'st', n:n, t:t, sc:sc});
-    if (t === 'srv') serverTapped(n);
-    if (sc) rallyWon(sc);
-  }
+  logEv({e:'st', n:n, t:t, sc:sc});
+  if (sc) rallyEnd(sc, t === 'srv' ? n : null);
   save();
 });
 
@@ -1466,7 +1504,7 @@ document.getElementById('btnUndo').onclick = function() {
   if (prev.adv  !== undefined) s.adv  = prev.adv;
   if (prev.logLen !== undefined && s.log) s.log.length = prev.logLen;
   if (prev.confirmed !== undefined) s.confirmed = prev.confirmed;
-  if (prev.lineup !== undefined) { s.lineup = prev.lineup; s.serve = prev.serve; s.needRot = prev.needRot; renderPlayers(); renderServe(); }
+  if (prev.lineup !== undefined) { s.lineup = prev.lineup; s.serve = prev.serve; if (prev.libero === '__u') delete s.libero; else s.libero = prev.libero; s.liberoFor = prev.liberoFor; renderPlayers(); renderServe(); }
   activeNames().forEach(function(n) {
     var sid = safeId(n);
     var st = s.stats[n] || freshStats();
@@ -1511,8 +1549,8 @@ function renderPlayersModal() {
   m.names.forEach(function(n, idx){
     var role = s.roles[n] || 'A';
     var absent = !!m.absent[n];
-    var roleColor = role === 'P' ? '#00e5e5' : (role === 'L' ? '#00ff78' : '#d0d0e0');
-    var roleBg    = role === 'P' ? 'rgba(0,229,229,.2)' : (role === 'L' ? 'rgba(0,255,120,.2)' : '#2a2a3e');
+    var roleColor = role === 'P' ? '#00e5e5' : (role === 'L' ? '#00ff78' : (role === 'C' ? '#ffb800' : '#d0d0e0'));
+    var roleBg    = role === 'P' ? 'rgba(0,229,229,.2)' : (role === 'L' ? 'rgba(0,255,120,.2)' : (role === 'C' ? 'rgba(255,184,0,.2)' : '#2a2a3e'));
     var pos = (s.startPos && s.startPos[n] !== undefined) ? s.startPos[n] : 0;
     var posColor = pos === 0 ? '#6a6a80' : (pos === 7 ? '#00ff78' : '#ffb800');
     var posBg    = pos === 0 ? '#1e1e2e' : (pos === 7 ? 'rgba(0,255,120,.2)' : 'rgba(255,184,0,.2)');
@@ -1575,7 +1613,8 @@ document.getElementById('playersList').addEventListener('click', function(e) {
   if (role) {
     var n = role.getAttribute('data-role');
     var cur = s.roles[n] || 'A';
-    var next = cur === 'A' ? 'P' : (cur === 'P' ? 'L' : 'A');
+    var next = cur === 'A' ? 'P' : (cur === 'P' ? 'L' : (cur === 'L' ? 'C' : 'A'));
+    s.liberoFor = null;   // recalculé à partir des centrales
     s.roles[n] = next;
     if (next === 'L') {
       if (!s.startPos) s.startPos = {};
