@@ -474,6 +474,18 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
   </div>
 </div>
 
+<!-- QUI SERVAIT ? (1er échange sans service choisi) -->
+<div class="confirm-overlay" id="whoOverlay">
+  <div class="confirm-box">
+    <h3>Qui servait ce point ?</h3>
+    <p>Le service n'avait pas été choisi au début du set.</p>
+    <div class="confirm-btns">
+      <button class="cbtn" id="whoN" style="height:60px;font-size:18px;background:#000;color:#fff;border:2px solid #fff;">NOUS</button>
+      <button class="cbtn" id="whoA" style="height:60px;font-size:18px;background:#3b3b48;color:#fff;border:2px solid #9090a8;">EUX</button>
+    </div>
+  </div>
+</div>
+
 <!-- PROMPT MODAL (text input) -->
 <div class="confirm-overlay" id="promptOverlay">
   <div class="confirm-box">
@@ -952,6 +964,20 @@ function serverTapped(n) {
 // server = la fille qui a servi si on le sait (service raté, As), sinon la position 1.
 function rallyEnd(side, server) {
   var s = S(); ensureLineup(s, M());
+  if (!s.serve && !server) {                         // service jamais choisi : on demande avant de tourner
+    var ov = document.getElementById('whoOverlay');
+    var pick = function(sv){
+      ov.classList.remove('show');
+      document.getElementById('whoN').onclick = document.getElementById('whoA').onclick = null;
+      s.serve = sv;
+      s.log.splice(Math.max(0, s.log.length - 1), 0, {e:'sv', side:sv, ts:Date.now()});
+      rallyEnd(side, null); save();
+    };
+    document.getElementById('whoN').onclick = function(){ pick('N'); };
+    document.getElementById('whoA').onclick = function(){ pick('A'); };
+    ov.classList.add('show');
+    return;
+  }
   if (server && s.lineup.indexOf(server) > 0) { rotateTo(s, server); s.serve = 'N'; }
   if (server && s.serve !== 'N' && s.lineup.indexOf(server) === 0) s.serve = 'N';
   if (s.serve === 'N' && s.lineup[0]) {
