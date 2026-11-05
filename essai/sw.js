@@ -3,7 +3,7 @@
 // téléphone (localStorage, clé vb40), séparées de celles de la version principale.
 //
 // Pour publier une nouvelle version d'essai : changer le numéro ci-dessous.
-var CACHE = 'vball-essai-v4.0-8';
+var CACHE = 'vball-essai-v4.0-9';
 var FILES = [
   './',
   './index.html',
@@ -14,7 +14,9 @@ var FILES = [
 ];
 
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }));
+  e.waitUntil(caches.open(CACHE).then(function (c) { // cache:'reload' : on va chercher les fichiers neufs sur le serveur (GitHub garde
+    // une copie 10 minutes dans le navigateur, ce qui installait parfois l'ancienne version)
+    return c.addAll(FILES.map(function (u) { return new Request(u, { cache: 'reload' }); })); }));
   self.skipWaiting();
 });
 
@@ -35,7 +37,7 @@ self.addEventListener('fetch', function (e) {
   e.respondWith(
     caches.open(CACHE).then(function (c) {
       return c.match(e.request, { ignoreSearch: true }).then(function (hit) {
-        var net = fetch(e.request).then(function (res) {
+        var net = fetch(e.request.url, { cache: 'no-cache' }).then(function (res) {
           if (res && res.ok) c.put(e.request, res.clone());
           return res;
         }).catch(function () { return hit || c.match('./index.html'); });

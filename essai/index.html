@@ -401,7 +401,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI</span></span>
+    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 9</span></span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
@@ -2707,8 +2707,15 @@ renderAll();
 // Mode hors-ligne : enregistre l'appli dans le téléphone pour qu'elle marche sans Internet.
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js').then(function(reg){ reg.update(); }).catch(function(){});
   });
+  // nouvelle version installée : on recharge tout de suite pour l'utiliser
+  if (navigator.serviceWorker.controller) {
+    var _reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if (_reloaded) return; _reloaded = true; save(); location.reload();
+    });
+  }
 }
 // Demande au navigateur de ne jamais effacer les données de l'appli.
 if (navigator.storage && navigator.storage.persist) {
