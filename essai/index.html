@@ -404,7 +404,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 11</span></span>
+    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 12</span></span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
@@ -2125,7 +2125,8 @@ document.getElementById('mmDelete').onclick = function(){
     if (!t.matches.length) {
       // Recréer un match vide
       var initialRoles = {};
-      t.names.forEach(function(n){ initialRoles[n] = 'A'; });
+      // on garde les rôles du match supprimé (sinon les rôles par défaut) : libero, passeuse, centrales
+      t.names.forEach(function(n){ initialRoles[n] = (m.sets[1].roles && m.sets[1].roles[n]) || DEFAULT_ROLES[n] || 'A'; });
       t.matches.push(freshMatch(1, t.names, initialRoles));
 
     }
