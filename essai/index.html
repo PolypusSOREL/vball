@@ -404,7 +404,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 10</span></span>
+    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 11</span></span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
@@ -1015,7 +1015,8 @@ function renderServe() {
   document.getElementById('srvEux').classList.toggle('on', s.serve === 'A');
 }
 
-function statBtns(n, role, d) {
+// canServe : le bouton jaune SRV n'apparaît que pour la fille en 1 quand c'est nous qui servons
+function statBtns(n, role, d, canServe) {
   var sid = safeId(n);
   if (role === 'L') {
     return '<button class="pbtn err" data-n="'+n+'" data-t="err" id="c-'+sid+'-err">'+d.err+'</button>'+
@@ -1023,7 +1024,7 @@ function statBtns(n, role, d) {
       '<button class="pbtn rp has-tag"  data-n="'+n+'" data-t="rp"><span class="pbtn-tag">R+</span><span id="c-'+sid+'-rp">'+d.rp+'</span></button>'+
       '<button class="pbtn rm has-tag"  data-n="'+n+'" data-t="rm"><span class="pbtn-tag">R−</span><span id="c-'+sid+'-rm">'+d.rm+'</span></button>';
   }
-  var b = '<button class="pbtn srv" data-n="'+n+'" data-t="srv" id="c-'+sid+'-srv">'+d.srv+'</button>'+
+  var b = (canServe ? '<button class="pbtn srv" data-n="'+n+'" data-t="srv" id="c-'+sid+'-srv">'+d.srv+'</button>' : '')+
     '<button class="pbtn err" data-n="'+n+'" data-t="err" id="c-'+sid+'-err">'+d.err+'</button>'+
     '<button class="pbtn pts" data-n="'+n+'" data-t="pts" id="c-'+sid+'-pts">'+d.pts+'</button>';
   if (role === 'P') b += '<button class="pbtn ast has-tag" data-n="'+n+'" data-t="ast"><span class="pbtn-tag">Ast</span><span id="c-'+sid+'-ast">'+d.ast+'</span></button>';
@@ -1049,12 +1050,13 @@ function renderPlayers() {
     if (k === 3) html += '</div><div class="court-gap"></div><div class="court-grid">';
     var n = (i === ls) ? s.libero : lu[i];
     var role = n ? roleOf(s, n) : 'A';
-    var cls = 'ccell' + (i === 0 && s.serve === 'N' ? ' server' : '') + (role === 'P' || role === 'L' ? ' four' : '') + (i === ls ? ' lib' : '');
+    var canServe = (i === 0 && s.serve !== 'A');
+    var cls = 'ccell' + (i === 0 && s.serve === 'N' ? ' server' : '') + ((role === 'P' && canServe) || role === 'L' ? ' four' : '') + (i === ls ? ' lib' : '');
     var pos = '<span class="pos">'+(i+1)+'</span>';
     if (!n) { html += '<div class="'+cls+' empty" data-slot="'+i+'">'+pos+'vide</div>'; return; }
     var d = s.stats[n] || freshStats();
     html += '<div class="'+cls+'" data-slot="'+i+'">'+pos+nameDiv(n, role, d)+
-      '<div class="pbtns">'+statBtns(n, role, d)+'</div></div>';
+      '<div class="pbtns">'+statBtns(n, role, d, canServe)+'</div></div>';
   });
   html += '</div></div>';
   // banc : remplaçantes, centrale remplacée par la libero, libero au banc
