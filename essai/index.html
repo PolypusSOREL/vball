@@ -404,7 +404,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 12</span></span>
+    <span class="logo">VBALL 4.0 <span style="font-size:10px;color:#ffb800;">ESSAI 13</span></span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
@@ -838,7 +838,7 @@ function snap() {
   // nous/adv inclus : un Ajouter PTS/SRV/ERR touche aussi le score (voir plus bas),
   // donc Annuler doit pouvoir remettre le score comme il était, pas juste la stat.
   if (!s.log) s.log = [];
-  s.hist.push(JSON.stringify({stats:s.stats, nous:s.nous, adv:s.adv, logLen:s.log.length, confirmed:!!s.confirmed, lineup:s.lineup||null, serve:s.serve||null, libero:(s.libero===undefined?'__u':s.libero), liberoFor:s.liberoFor||null}));
+  s.hist.push(JSON.stringify({stats:s.stats, nous:s.nous, adv:s.adv, logLen:s.log.length, confirmed:!!s.confirmed, lineup:s.lineup||null, serve:s.serve||null, libero:(s.libero===undefined?'__u':s.libero), liberoOut:!!s.liberoOut, liberoFor:s.liberoFor||null}));
   if (s.hist.length > 40) s.hist.shift();
 }
 
@@ -924,7 +924,8 @@ function ensureLineup(s, m) {
   if (!s.lineupStart) s.lineupStart = s.lineup.slice();
   // libero
   var libs = activeNames(s, m).filter(function(n){ return roleOf(s, n) === 'L'; });
-  if (s.libero === undefined) s.libero = libs[0] || null;
+  // pas de libero en jeu : on en met une, sauf si on l'a mise au banc exprès (glisser au banc)
+  if (!s.libero && !s.liberoOut) s.libero = libs[0] || null;
   if (s.libero && libs.indexOf(s.libero) < 0) s.libero = libs[0] || null;
   if (!s.liberoFor) s.liberoFor = [];   // ajouts manuels ; les centrales (rôle C) sont toujours incluses
   // début de set, service pas choisi, libero en 1 : c'est forcément nous à la réception
@@ -1141,12 +1142,12 @@ function doSwap(src, t) {
   if (srcIsLib) {
     if (toBench) {
       if (s.libero !== src) return;
-      snap(); s.libero = null; msg = src + ' au banc';
+      snap(); s.libero = null; s.liberoOut = true; msg = src + ' au banc';
     } else if (tSlot !== null) {
       if ([1, 2, 3].indexOf(tSlot) >= 0) { toast('La libero ne peut pas jouer à l\'avant'); return; }
       if (tSlot === 0 && s.serve === 'N') { toast('La libero ne remplace pas la serveuse'); return; }
       if (!lu[tSlot]) return;
-      snap(); s.libero = src; s.liberoFor = (s.liberoFor || []).filter(function(x){ return x !== lu[tSlot]; }).concat([lu[tSlot]]); msg = src + ' remplace ' + lu[tSlot];
+      snap(); s.libero = src; s.liberoOut = false; s.liberoFor = (s.liberoFor || []).filter(function(x){ return x !== lu[tSlot]; }).concat([lu[tSlot]]); msg = src + ' remplace ' + lu[tSlot];
     } else return;
   } else {
     var srcSlot = lu.indexOf(src);
@@ -1158,7 +1159,7 @@ function doSwap(src, t) {
           if (srcSlot >= 0) { var x = lu[tSlot]; lu[tSlot] = src; lu[srcSlot] = x; }
           else lu[tSlot] = src;
         }
-        s.libero = null; msg = 'Libero au banc';
+        s.libero = null; s.liberoOut = true; msg = 'Libero au banc';
       } else if (srcSlot >= 0) { var tmp = lu[tSlot]; lu[tSlot] = src; lu[srcSlot] = tmp; }
       else { msg = src + ' entre, ' + (lu[tSlot] || '') + ' au banc'; lu[tSlot] = src; }
     } else if (tBench) {
@@ -1578,7 +1579,7 @@ document.getElementById('btnUndo').onclick = function() {
   if (prev.adv  !== undefined) s.adv  = prev.adv;
   if (prev.logLen !== undefined && s.log) s.log.length = prev.logLen;
   if (prev.confirmed !== undefined) s.confirmed = prev.confirmed;
-  if (prev.lineup !== undefined) { s.lineup = prev.lineup; s.serve = prev.serve; if (prev.libero === '__u') delete s.libero; else s.libero = prev.libero; s.liberoFor = prev.liberoFor; renderPlayers(); renderServe(); }
+  if (prev.lineup !== undefined) { s.lineup = prev.lineup; s.serve = prev.serve; if (prev.libero === '__u') delete s.libero; else s.libero = prev.libero; s.liberoOut = !!prev.liberoOut; s.liberoFor = prev.liberoFor; renderPlayers(); renderServe(); }
   activeNames().forEach(function(n) {
     var sid = safeId(n);
     var st = s.stats[n] || freshStats();
