@@ -440,7 +440,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 </div>
 
 <!-- PLAYERS -->
-<div class="sec-title" style="display:none">Joueuses : <span style="color:#f5c518">Srv</span> · <span style="color:#b0b0c8">Err</span> · <span style="color:#3ea0ff">Pts</span> · <span style="color:#00e5e5">Ast</span> · <span style="color:#00ff78">R+</span> · <span style="color:#ff50b4">R−</span></div>
+<div class="sec-title">Joueuses : <span style="color:#f5c518">Srv</span> · <span style="color:#b0b0c8">Err</span> · <span style="color:#3ea0ff">Pts</span> · <span style="color:#00e5e5">Ast</span> · <span style="color:#00ff78">R+</span> · <span style="color:#ff50b4">R−</span></div>
 <div class="players" id="players"></div>
 
 <!-- ACTIONS -->
@@ -1003,7 +1003,7 @@ function renderPlayers() {
   el.innerHTML = '';
   var lu = ensureLineup(s, m);
   var ls = liberoSlot(s);
-  var html = '<div class="court"><div class="net">FILET</div><div class="court-grid">';
+  var html = '<div class="court"><div class="court-grid">';
   var order = [3, 2, 1, 4, 5, 0];   // 4 3 2 / 5 6 1
   order.forEach(function(i, k){
     if (k === 3) html += '</div><div class="court-gap"></div><div class="court-grid">';
