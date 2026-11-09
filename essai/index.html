@@ -1007,7 +1007,7 @@ function rallyEnd(side, server) {
     s.log.splice(s.log.length - 1, 0, {e:'svt', n:who, auto:true, ts:Date.now()});
   }
   var ce = s.log[s.log.length - 1];                  // 4.1 : qui était sur le terrain pendant cet échange
-  if (ce) { ce.on = onCourt(s); ce.rot = rotationNo(s); }
+  if (ce) { ce.on = onCourt(s); ce.rot = rotationNo(s); var li = liberoSlot(s); ce.libFor = li >= 0 ? s.lineup[li] : ''; }
   if (side === 'N' && s.serve === 'A') {             // side-out : rotation automatique
     s.lineup = s.lineup.slice(1).concat(s.lineup.slice(0, 1));
   }
@@ -1345,6 +1345,7 @@ document.getElementById('srvEux').onclick  = function(){ setServe('A'); };
 var CODE = {pts:'Pt', as:'As', err:'Err', srv:'SvR'};
 function buildRallies(s) {
   var R = [], tap = null, pend = null, curServer = null, prevTurnServer = null, forced = null;
+  var lc = {rp:0, def:0, rm:0};   // 4.1 : contacts de la libero pendant l'échange
   function lastW() { return R.length ? R[R.length-1].w : null; }
   function close(w, n, c, unk, ev) {
     var ourEv = !!tap || ((c === 'SvR' || c === 'As') && n);
@@ -1363,12 +1364,14 @@ function buildRallies(s) {
       if (who) { if (newTurn && prevTurnServer && who === prevTurnServer && !flag) flag = '!'; srv = who; curServer = who; }
       else srv = '?';   // la serveuse est appuyée à chaque service : pas d'appui = oubli
     }
-    R.push({w:w, n:n||'', c:c, team:team, srv:srv, flag:flag, unk:!!unk, on:(ev && ev.on) || null, rot:(ev && ev.rot) || ''});
+    R.push({w:w, n:n||'', c:c, team:team, srv:srv, flag:flag, unk:!!unk, on:(ev && ev.on) || null, rot:(ev && ev.rot) || '', libFor:(ev && ev.libFor) || '', lc:lc});
+    lc = {rp:0, def:0, rm:0};
     tap = null; pend = null;
   }
   (s.log || []).forEach(function(ev){
     if (ev.e === 'svt') tap = ev.n;
     else if (ev.e === 'sv') forced = ev.side;
+    else if (ev.e === 'st' && (ev.t === 'rp' || ev.t === 'rm' || ev.t === 'def')) lc[ev.t]++;
     else if (ev.e === 'st' && CODE[ev.t]) {
       var side = (ev.t === 'pts' || ev.t === 'as') ? 'N' : 'A';
       if (ev.sc) close(ev.sc, ev.n, CODE[ev.t], false, ev);
@@ -2458,7 +2461,7 @@ function buildTournamentText() {
 
 // CSV du tournoi complet
 // 3.9 : lignes du fil des échanges (une ligne par échange)
-var JOURNAL_HEAD = ['Tournoi','Match','Adversaire','Set','No','Gagnant','Score Nous','Score Adv','Service','Serveuse','Joueuse','Action','Note','Rotation','P1','P2','P3','P4','P5','P6','Libero en jeu'];
+var JOURNAL_HEAD = ['Tournoi','Match','Adversaire','Set','No','Gagnant','Score Nous','Score Adv','Service','Serveuse','Joueuse','Action','Note','Rotation','P1','P2','P3','P4','P5','P6','Libero en jeu','Libero remplace','Lib R+','Lib neutre','Lib R-'];
 function journalRows(t) {
   var rows = [];
   t.matches.forEach(function(m){
@@ -2470,7 +2473,8 @@ function journalRows(t) {
           r.team==='N'?'Nous':(r.team==='A'?'Adv':'?'), r.srv||'', r.n, r.c,
           r.unk ? 'ajouté par correction' : (r.flag==='m' ? 'échange manquant?' : (r.srv==='?' ? 'serveuse non appuyée' : (r.flag==='!' ? 'même serveuse que le tour précédent' : ''))),
           r.rot ? 'R' + r.rot : ''].concat(r.on ? r.on.map(function(x){ return x || ''; }) : ['','','','','',''])
-          .concat([r.on ? (r.on.filter(function(x){ return x && (s.roles[x] || 'A') === 'L'; })[0] || '') : '']));
+          .concat([r.on ? (r.on.filter(function(x){ return x && (s.roles[x] || 'A') === 'L'; })[0] || '') : '', r.libFor || '',
+                   r.lc.rp, r.lc.def, r.lc.rm]));
       });
     });
   });
