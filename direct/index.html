@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b12">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+<title>Score en direct</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0b0b12; color: #f0f0f8; font-family: -apple-system, system-ui, sans-serif;
+  padding: max(14px, env(safe-area-inset-top)) 14px 30px; max-width: 520px; margin: 0 auto; }
+.top { font-size: 14px; color: #9090a8; text-align: center; line-height: 1.4; }
+.top b { color: #fff; font-size: 17px; }
+.board { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 16px 0 6px; text-align: center; }
+.tname { font-size: 15px; font-weight: 700; color: #b0b0c8; min-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tname.nous { color: #6ba5ff; }
+.num { font-size: 92px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.serve { font-size: 13px; color: #f5c518; min-height: 18px; margin-top: 4px; }
+.mid { font-size: 15px; color: #9090a8; padding: 0 8px; font-weight: 700; }
+.setlbl { text-align: center; font-size: 15px; color: #9090a8; margin-bottom: 14px; }
+.sets { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+.chip { border: 1px solid #33334a; border-radius: 10px; padding: 6px 10px; font-size: 15px; font-variant-numeric: tabular-nums; }
+.chip.w { border-color: #00c060; color: #00e070; }
+.chip.l { border-color: #ff5070; color: #ff7088; }
+.chip.cur { border-color: #f5c518; color: #f5c518; }
+.last { background: #16161f; border: 1px solid #252535; border-radius: 16px; padding: 14px; text-align: center; margin-bottom: 14px; }
+.last .k { font-size: 12px; color: #9090a8; text-transform: uppercase; letter-spacing: .08em; }
+.last .v { font-size: 26px; font-weight: 800; margin-top: 4px; }
+.last.n .v { color: #6ba5ff; }
+.last.a .v { color: #ff7088; }
+h3 { font-size: 13px; color: #9090a8; text-transform: uppercase; letter-spacing: .08em; margin: 4px 0 6px; }
+.fil div { display: flex; justify-content: space-between; padding: 8px 4px; border-bottom: 1px solid #1e1e2e; font-size: 16px; }
+.fil .n { color: #8fbaff; } .fil .a { color: #ff8ea0; }
+.fil span:last-child { font-variant-numeric: tabular-nums; color: #d0d0e0; }
+.tourn { text-align: center; font-size: 15px; color: #d0d0e0; margin-top: 16px; }
+.foot { text-align: center; font-size: 12px; color: #70708a; margin-top: 14px; }
+.msg { text-align: center; color: #9090a8; font-size: 17px; margin-top: 60px; line-height: 1.6; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #70708a; margin-right: 6px; vertical-align: middle; }
+.dot.ok { background: #00e070; } .dot.err { background: #ff5070; }
+</style>
+</head>
+<body>
+<div id="app"><div class="msg">Connexion…</div></div>
+<div class="foot"><span class="dot" id="dot"></span><span id="foot"></span></div>
+
+<script>
+// Page des parents : lit le résumé envoyé par VBall et se met à jour toute seule.
+var LIVE_DB = '';   // adresse de la base Firebase (databaseURL)
+
+var code = (new URLSearchParams(location.search).get('c') || '').replace(/[^a-z0-9]/gi, '');
+var data = null, lastOk = 0, es = null, poll = null;
+
+function esc(x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+function render() {
+  var app = document.getElementById('app');
+  if (!LIVE_DB || !code) { app.innerHTML = '<div class="msg">Lien incomplet.<br>Redemande le lien à l\'entraîneur.</div>'; return; }
+  if (!data) { app.innerHTML = '<div class="msg">Aucun match diffusé pour l\'instant.<br>La page se mettra à jour toute seule.</div>'; return; }
+  if (!data.on) { app.innerHTML = '<div class="msg">📡 Diffusion en pause.<br>La page se mettra à jour toute seule quand elle reprendra.</div>'; return; }
+  var d = data, h = '';
+  h += '<div class="top"><b>' + esc(d.equipe) + ' vs ' + esc(d.adv) + '</b><br>' + esc(d.tournoi) + ' · ' + esc(d.match) + '</div>';
+  h += '<div class="board">';
+  h += '<div><div class="tname nous">' + esc(d.equipe) + '</div><div class="num">' + (d.nous || 0) + '</div><div class="serve">' + (d.sert === 'N' ? '● au service' : '') + '</div></div>';
+  h += '<div class="mid">VS</div>';
+  h += '<div><div class="tname">' + esc(d.adv) + '</div><div class="num">' + (d.eux || 0) + '</div><div class="serve">' + (d.sert === 'A' ? '● au service' : '') + '</div></div>';
+  h += '</div><div class="setlbl">Set ' + esc(d.set) + '</div>';
+  if (d.sets && d.sets.length) {
+    h += '<div class="sets">';
+    d.sets.forEach(function(s){
+      var c = !s.fini ? 'cur' : (s.nous > s.eux ? 'w' : 'l');
+      h += '<span class="chip ' + c + '">S' + s.n + ' · ' + s.nous + '-' + s.eux + '</span>';
+    });
+    h += '</div>';
+  }
+  var fil = d.fil || [];
+  if (fil.length) {
+    var L = fil[fil.length - 1];
+    h += '<div class="last ' + (L.s === 'N' ? 'n' : 'a') + '"><div class="k">Dernier point</div><div class="v">' + esc(L.txt) + '</div></div>';
+    h += '<h3>Les derniers points</h3><div class="fil">';
+    fil.slice().reverse().forEach(function(r){
+      h += '<div><span class="' + (r.s === 'N' ? 'n' : 'a') + '">' + esc(r.txt) + '</span><span>' + esc(r.sc) + '</span></div>';
+    });
+    h += '</div>';
+  }
+  if (d.tournoiSets) {
+    var g = d.tournoiSets.g || 0, p = d.tournoiSets.p || 0;
+    h += '<div class="tourn">Tournoi : <b>' + g + '</b> set' + (g > 1 ? 's' : '') + ' gagné' + (g > 1 ? 's' : '') +
+         ' · <b>' + p + '</b> perdu' + (p > 1 ? 's' : '') + '</div>';
+  }
+  app.innerHTML = h;
+}
+
+function foot() {
+  var dot = document.getElementById('dot'), f = document.getElementById('foot');
+  var fresh = lastOk && Date.now() - lastOk < 60000;
+  dot.className = 'dot ' + (fresh ? 'ok' : 'err');
+  if (data && data.ts) {
+    var sec = Math.max(0, Math.round((Date.now() - data.ts) / 1000));
+    f.textContent = 'Mis à jour il y a ' + (sec < 60 ? sec + ' s' : Math.round(sec / 60) + ' min');
+  } else f.textContent = fresh ? 'En ligne' : 'Reconnexion…';
+}
+
+var url = LIVE_DB.replace(/\/$/, '') + '/live/' + code + '.json';
+
+function fetchOnce() {
+  return fetch(url, { cache:'no-store' }).then(function(r){ return r.json(); })
+    .then(function(j){ data = j; lastOk = Date.now(); render(); foot(); })
+    .catch(function(){ foot(); });
+}
+
+// Flux en direct (Firebase envoie chaque changement); sinon on relit aux 5 s
+function stream() {
+  if (es) es.close();
+  try {
+    es = new EventSource(url);
+    var onEv = function(e){
+      lastOk = Date.now();
+      try {
+        var m = JSON.parse(e.data);
+        if (m.path === '/') { data = m.data; render(); foot(); } else fetchOnce();
+      } catch(x){ fetchOnce(); }
+    };
+    es.addEventListener('put', onEv);
+    es.addEventListener('patch', onEv);
+    es.addEventListener('keep-alive', function(){ lastOk = Date.now(); foot(); });
+    es.onerror = function(){ foot(); };
+  } catch(e) {}
+}
+
+render();
+if (LIVE_DB && code) {
+  fetchOnce(); stream();
+  poll = setInterval(function(){ if (Date.now() - lastOk > 20000) fetchOnce(); foot(); }, 5000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) { fetchOnce(); stream(); } });
+}
+</script>
+</body>
+</html>

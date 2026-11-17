@@ -401,6 +401,11 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 .chip i { font-style: normal; font-size: 11px; color: #9090a8; font-weight: 600; }
 .adverse-input { min-width: 0; width: 100%; }
 .prow.special.server-row { border: 2px solid #f5c518; }
+.live-dot { font-size: 16px; padding: 2px 6px; border-radius: 8px; cursor: pointer; display: none; }
+.live-dot.ok   { background: rgba(0,255,120,.25); }
+.live-dot.wait { background: rgba(245,197,24,.3); }
+.live-dot.err  { background: rgba(255,60,60,.45); }
+.live-link { font-size: 13px; color: #6ba5ff; word-break: break-all; background: #1e1e2e; border-radius: 10px; padding: 10px; }
 </style>
 </head>
 <body>
@@ -408,7 +413,8 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.1 <span style="font-size:10px;color:#ffb800;">ESSAI 1</span></span>
+    <span class="logo">VBALL 4.1 <span style="font-size:10px;color:#ffb800;">ESSAI 2</span></span>
+    <span class="live-dot off" id="liveDot" title="Diffusion en direct">📡</span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
@@ -613,6 +619,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
       <button class="tbtn primary" id="btnNewMatch">+ Nouveau match</button>
       <button class="tbtn"         id="btnRenameTourn">✏️ Renommer</button>
       <button class="tbtn"         id="btnSwitchTourn">📁 Tournois</button>
+      <button class="tbtn accent"  id="btnLive">📡 Direct</button>
     </div>
 
     <div class="tourn-recap" id="tournRecap">—</div>
@@ -631,6 +638,23 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
     </div>
 
     <button class="mbtn close" id="tournClose" style="width:100%; margin-top:14px;">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL DIFFUSION EN DIRECT -->
+<div class="overlay" id="liveOverlay">
+  <div class="modal">
+    <div class="modal-title">📡 Score en direct pour les parents</div>
+    <div class="modal-hint">Quand c'est en marche, chaque point envoie le score, le dernier point et les sets.
+      Les parents ouvrent le lien dans leur navigateur, rien à installer.
+      Nos erreurs s'affichent « Point adverse », sans nom.</div>
+    <div class="modal-hint" id="liveStatus" style="color:#f5c518; font-weight:700;">—</div>
+    <div class="live-link" id="liveLink">—</div>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+      <button class="mbtn copy" id="liveToggle">📡 Démarrer la diffusion</button>
+      <button class="mbtn close" id="liveShare">🔗 Envoyer le lien aux parents</button>
+      <button class="mbtn close" id="liveClose">Fermer</button>
+    </div>
   </div>
 </div>
 
@@ -758,6 +782,7 @@ var autoScoreEnabled = true;
 
 function save() {
   try { localStorage.setItem('vb41', JSON.stringify(DB)); } catch(e){}
+  if (window.live) live.tick();
 }
 
 function load() {
@@ -2763,6 +2788,191 @@ document.getElementById('btnImportJson').onclick = function() {
 
 load();
 renderAll();
+
+
+// ═══════════════════════════════════════════
+// 4.1 : DIFFUSION EN DIRECT (parents)
+// Quand c'est activé, chaque sauvegarde envoie un petit résumé (score, dernier point,
+// sets) dans une base Firebase. Les parents le voient sur la page ../../direct/?c=CODE.
+// Les stats détaillées restent dans le téléphone : seul ce résumé part sur Internet.
+// ═══════════════════════════════════════════
+var LIVE_CFG = { apiKey: '', databaseURL: '' };   // à remplir avec la config Firebase
+var LIVE_TEAM = 'Polypus';
+var LIVE_VIEW = 'https://polypussorel.github.io/vball/direct/';
+
+var live = (function(){
+  var st = { on:false, code:'' };
+  try { var r = JSON.parse(localStorage.getItem('vbLive') || '{}'); st.on = !!r.on; st.code = r.code || ''; } catch(e){}
+  if (!st.code) {
+    var abc = 'abcdefghjkmnpqrstuvwxyz23456789', c = '';
+    for (var i = 0; i < 10; i++) c += abc[Math.floor(Math.random() * abc.length)];
+    st.code = c;
+  }
+  var auth = null; try { auth = JSON.parse(localStorage.getItem('vbLiveAuth') || 'null'); } catch(e){}
+  var lastSent = '', pending = null, busy = false, timer = null, status = 'off';
+  function keep() { try { localStorage.setItem('vbLive', JSON.stringify(st)); } catch(e){} }
+  function keepAuth() { try { localStorage.setItem('vbLiveAuth', JSON.stringify(auth)); } catch(e){} }
+  keep();
+  function ready() { return !!(LIVE_CFG.apiKey && LIVE_CFG.databaseURL); }
+  function link() { return LIVE_VIEW + '?c=' + st.code; }
+
+  function setStatus(x) {
+    status = x;
+    var el = document.getElementById('liveDot');
+    if (el) {
+      el.style.display = st.on ? 'inline-block' : 'none';
+      el.className = 'live-dot ' + x;
+    }
+    var t = document.getElementById('liveStatus');
+    if (t) t.textContent = !ready() ? 'Pas encore configurée.' :
+      !st.on ? 'Arrêtée.' : x === 'ok' ? 'En ondes : les parents voient le score.' :
+      x === 'wait' ? 'Envoi en cours…' : 'Pas de réseau : sera envoyé dès que ça revient.';
+  }
+
+  // Connexion anonyme : ce téléphone devient le seul qui peut écrire sur ce lien
+  function token() {
+    var now = Date.now();
+    if (auth && auth.idToken && auth.exp > now + 60000) return Promise.resolve(auth.idToken);
+    var req = (auth && auth.refresh)
+      ? fetch('https://securetoken.googleapis.com/v1/token?key=' + LIVE_CFG.apiKey, {
+          method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+          body:'grant_type=refresh_token&refresh_token=' + encodeURIComponent(auth.refresh) })
+          .then(function(r){ if (!r.ok) throw 0; return r.json(); })
+          .then(function(j){ return { uid:j.user_id, refresh:j.refresh_token, idToken:j.id_token, exp:now + (+j.expires_in) * 1000 }; })
+      : fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + LIVE_CFG.apiKey, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:'{"returnSecureToken":true}' })
+          .then(function(r){ if (!r.ok) throw 0; return r.json(); })
+          .then(function(j){ return { uid:j.localId, refresh:j.refreshToken, idToken:j.idToken, exp:now + (+j.expiresIn) * 1000 }; });
+    return req.then(function(a){ auth = a; keepAuth(); return a.idToken; });
+  }
+
+  function label(ev) {
+    if (ev.e === 'st') {
+      if (ev.t === 'as')  return ev.n + ' · As au service';
+      if (ev.t === 'pts') return ev.n + ' · Point';
+      return 'Point adverse';                       // nos erreurs : on ne nomme personne
+    }
+    if (ev.e === 'p') return ev.side === 'N' ? 'Erreur adverse' : 'Point adverse';
+    return 'Correction du score';
+  }
+
+  // Refait le fil du set pour avoir le score après chaque point
+  function rallies(s) {
+    var n = 0, a = 0, out = [];
+    (s.log || []).forEach(function(ev){
+      var side = null, d = 1;
+      if (ev.e === 'st' && ev.sc) side = ev.sc;
+      else if (ev.e === 'p') side = ev.side;
+      else if (ev.e === 'c') { side = ev.side; d = ev.d; }
+      if (!side) return;
+      if (side === 'N') n = Math.max(0, n + d); else a = Math.max(0, a + d);
+      if (ev.e === 'c' && d < 0) {
+        for (var i = out.length - 1; i >= 0; i--) if (out[i].s === side) { out.splice(i, 1); break; }
+        return;
+      }
+      out.push({ s:side, txt:label(ev), sc:n + '-' + a });
+    });
+    return out;
+  }
+
+  function setDone(m, i, isActive) {
+    var s = m.sets[i];
+    if (!s || !(s.nous || s.adv)) return false;
+    return !!s.confirmed || !isActive || i < m.curSet;
+  }
+
+  function payload() {
+    var t = T(), m = M(), s = S(), w = 0, l = 0;
+    t.matches.forEach(function(mm){
+      [1,2,3].forEach(function(i){
+        if (!setDone(mm, i, mm === m)) return;
+        var x = mm.sets[i], N = scoreOf(x,'N'), A = scoreOf(x,'A');
+        if (N > A) w++; else if (A > N) l++;
+      });
+    });
+    var sets = [];
+    [1,2,3].forEach(function(i){
+      var x = m.sets[i];
+      if (!x || (!(x.nous || x.adv) && i !== m.curSet)) return;
+      sets.push({ n:i, nous:scoreOf(x,'N'), eux:scoreOf(x,'A'), fini:setDone(m, i, true) });
+    });
+    var r = rallies(s);
+    return {
+      v:1, owner:auth ? auth.uid : '', on:true,
+      equipe:LIVE_TEAM, tournoi:t.name || '', match:m.name || '',
+      adv:m.adverse || ADV_NONE, set:m.curSet,
+      nous:scoreOf(s,'N'), eux:scoreOf(s,'A'),
+      sert:s.serve || '', sets:sets, fil:r.slice(-10),
+      tournoiSets:{ g:w, p:l }
+    };
+  }
+
+  function push() {
+    if (!ready() || busy || !pending) return;
+    busy = true; setStatus('wait');
+    var body = pending;
+    token().then(function(tk){
+      var p = JSON.parse(body); p.owner = auth.uid; p.ts = { '.sv':'timestamp' };
+      return fetch(LIVE_CFG.databaseURL.replace(/\/$/, '') + '/live/' + st.code + '.json?auth=' + tk,
+        { method:'PUT', body:JSON.stringify(p) });
+    }).then(function(res){
+      busy = false;
+      if (res.status === 401) { if (auth) auth.exp = 0; throw 0; }
+      if (!res.ok) throw 0;
+      lastSent = body; if (pending === body) pending = null;
+      setStatus('ok');
+      if (pending) push();
+    }).catch(function(){
+      busy = false; setStatus('err');
+      clearTimeout(timer); timer = setTimeout(push, 8000);
+    });
+  }
+
+  function tick(force) {
+    if (!st.on || !ready()) return;
+    var b; try { b = JSON.stringify(payload()); } catch(e) { return; }
+    if (!force && b === lastSent) return;
+    pending = b;
+    clearTimeout(timer); timer = setTimeout(push, 250);
+  }
+
+  function setOn(on) {
+    st.on = on; keep();
+    if (on) { lastSent = ''; tick(true); }
+    else if (ready()) {
+      pending = JSON.stringify({ v:1, owner:'', on:false, equipe:LIVE_TEAM });
+      lastSent = ''; push();
+    }
+    setStatus(on ? 'wait' : 'off');
+  }
+
+  window.addEventListener('online', function(){ if (pending) push(); });
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden && st.on) tick(true); });
+
+  return { tick:tick, setOn:setOn, link:link, isOn:function(){ return st.on; }, ready:ready, refresh:function(){ setStatus(st.on ? status : 'off'); } };
+})();
+
+function openLive() {
+  document.getElementById('liveLink').textContent = live.link();
+  document.getElementById('liveToggle').textContent = live.isOn() ? '⏹ Arrêter la diffusion' : '📡 Démarrer la diffusion';
+  document.getElementById('liveToggle').className = 'mbtn ' + (live.isOn() ? 'warn' : 'copy');
+  live.refresh();
+  document.getElementById('liveOverlay').classList.add('show');
+}
+document.getElementById('btnLive').onclick = function(){ document.getElementById('tournOverlay').classList.remove('show'); openLive(); };
+document.getElementById('liveDot').onclick = openLive;
+document.getElementById('liveClose').onclick = function(){ document.getElementById('liveOverlay').classList.remove('show'); };
+document.getElementById('liveToggle').onclick = function(){
+  if (!live.ready()) { toast('Diffusion pas encore configurée'); return; }
+  live.setOn(!live.isOn()); haptic(); openLive();
+};
+document.getElementById('liveShare').onclick = function(){
+  var u = live.link();
+  if (navigator.share) { navigator.share({ title:'Score en direct · ' + LIVE_TEAM, url:u }).catch(function(){}); return; }
+  try { navigator.clipboard.writeText(u); toast('Lien copié'); } catch(e) { toast(u); }
+};
+live.refresh();
+if (live.isOn()) live.tick(true);
 
 // Mode hors-ligne : enregistre l'appli dans le téléphone pour qu'elle marche sans Internet.
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
