@@ -48,7 +48,7 @@ h3 { font-size: 13px; color: #9090a8; text-transform: uppercase; letter-spacing:
 
 <script>
 // Page des parents : lit le résumé envoyé par VBall et se met à jour toute seule.
-var LIVE_DB = '';   // adresse de la base Firebase (databaseURL)
+var LIVE_DB = 'https://vball-direct-default-rtdb.firebaseio.com';   // adresse de la base Firebase (databaseURL)
 
 var code = (new URLSearchParams(location.search).get('c') || '').replace(/[^a-z0-9]/gi, '');
 var data = null, lastOk = 0, es = null, poll = null;
