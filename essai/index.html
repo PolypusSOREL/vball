@@ -413,7 +413,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.1 <span style="font-size:10px;color:#ffb800;">ESSAI 2</span></span>
+    <span class="logo">VBALL 4.1 <span style="font-size:10px;color:#ffb800;">ESSAI 3</span></span>
     <span class="live-dot off" id="liveDot" title="Diffusion en direct">📡</span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
@@ -2897,12 +2897,27 @@ var live = (function(){
       sets.push({ n:i, nous:scoreOf(x,'N'), eux:scoreOf(x,'A'), fini:setDone(m, i, true) });
     });
     var r = rallies(s);
+    // 4.1 : tous les matchs du tournoi (sets gagnés par équipe et scores des sets)
+    var matchs = [];
+    t.matches.forEach(function(mm){
+      var g = 0, pp = 0, sc = [], cur = (mm === m);
+      [1,2,3].forEach(function(i){
+        var x = mm.sets[i];
+        if (!x || !(x.nous || x.adv)) return;
+        var N = scoreOf(x,'N'), A = scoreOf(x,'A'), fini = setDone(mm, i, cur);
+        if (fini) { if (N > A) g++; else if (A > N) pp++; }
+        sc.push({ nous:N, eux:A, fini:fini });
+      });
+      if (!sc.length && !cur) return;
+      matchs.push({ adv:mm.adverse || ADV_NONE, g:g, p:pp, sets:sc, cur:cur });
+    });
     return {
+      matchs:matchs,
       v:1, owner:auth ? auth.uid : '', on:true,
       equipe:LIVE_TEAM, tournoi:t.name || '', match:m.name || '',
       adv:m.adverse || ADV_NONE, set:m.curSet,
       nous:scoreOf(s,'N'), eux:scoreOf(s,'A'),
-      sert:s.serve || '', sets:sets, fil:r.slice(-10),
+      sert:s.serve || '', sets:sets, fil:r.slice(-3),
       tournoiSets:{ g:w, p:l }
     };
   }
