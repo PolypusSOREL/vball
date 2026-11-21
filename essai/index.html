@@ -52,6 +52,27 @@ body {
   font-family: inherit; cursor: pointer;
 }
 .set-btn.on { background: #4f8eff; border-color: #4f8eff; color: #fff; }
+.set-btn.plus { flex: 0 0 44px; font-size: 20px; padding: 5px 0; }
+.set-btn.plus.ended { color: #00e070; border-color: #00e070; }
+.sets.many { gap: 5px; }
+/* ORDRE DE DÉPART */
+.order-overlay { display: none; position: fixed; inset: 0; background: #0f0f17; z-index: 320; overflow-y: auto;
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom)); }
+.order-overlay.show { display: block; }
+.order-box { max-width: 520px; margin: 0 auto; }
+.order-box h3 { font-size: 20px; color: #fff; margin-bottom: 6px; }
+.order-help { font-size: 14px; color: #b0b0c8; line-height: 1.4; margin-bottom: 6px; }
+.order-warn { font-size: 14px; color: #ffd166; font-weight: 700; margin-bottom: 8px; }
+.order-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0 12px; }
+.order-slots div { border: 1px solid #4a4a6a; border-radius: 10px; padding: 8px 6px; min-height: 52px; color: #fff; font-size: 17px; font-weight: 700; }
+.order-slots div small { display: block; font-size: 11px; color: #9090a8; font-weight: 600; }
+.order-slots div.next { border-color: #4f8eff; box-shadow: 0 0 0 1px #4f8eff; }
+.order-names { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+.order-names button { height: 56px; border-radius: 12px; border: 1px solid #4a4a6a; background: #1e1e2e; color: #fff; font-size: 19px; font-weight: 700; font-family: inherit; }
+.order-names button.used { opacity: .3; }
+.order-quick { display: flex; gap: 8px; margin-bottom: 12px; }
+.order-quick .cbtn { height: 44px; font-size: 14px; }
+.rot-btn.order { width: auto; padding: 0 10px; font-size: 14px; border-color: #4a4a6a; background: #2a2a3e; }
 
 /* SCORE */
 .scoreboard {
@@ -413,17 +434,12 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.1 <span style="font-size:10px;color:#ffb800;">ESSAI 3</span></span>
+    <span class="logo">VBALL 4.1 <span style="font-size:10px;color:#ffb800;">ESSAI 4</span></span>
     <span class="live-dot off" id="liveDot" title="Diffusion en direct">📡</span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
-  <div class="sets">
-    <span class="set-lbl">Set</span>
-    <button class="set-btn on" id="s1">1</button>
-    <button class="set-btn"    id="s2">2</button>
-    <button class="set-btn"    id="s3">3</button>
-  </div>
+  <div class="sets" id="setsRow"></div>
   <div class="corr-banner" id="corrBanner">CORRECTION</div>
 </div>
 
@@ -483,6 +499,38 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
     <div class="confirm-btns">
       <button class="cbtn cancel"  id="confirmCancel">Annuler</button>
       <button class="cbtn confirm" id="confirmOk">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- « + » : NOUVEAU SET OU FIN DU MATCH -->
+<div class="confirm-overlay" id="plusOverlay">
+  <div class="confirm-box">
+    <h3 id="plusTitle">Set</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
+      <button class="cbtn confirmBlue" id="plusNew" style="height:56px;font-size:17px;">Nouveau set</button>
+      <button class="cbtn" id="plusEnd" style="height:56px;font-size:17px;background:#000;color:#fff;border:2px solid #fff;">Fin du match</button>
+      <button class="cbtn cancel" id="plusCancel">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDRE DE DÉPART -->
+<div class="order-overlay" id="orderOverlay">
+  <div class="order-box">
+    <h3 id="orderTitle">Ordre de départ</h3>
+    <p class="order-help">Touche les 6 joueuses dans l'ordre de la feuille de match (1 = au service). La libero remplace la centrale toute seule.</p>
+    <p class="order-warn" id="orderWarn"></p>
+    <div class="order-slots" id="orderSlots"></div>
+    <div class="order-names" id="orderNames"></div>
+    <div class="order-quick">
+      <button class="cbtn cancel" id="orderBase">Base</button>
+      <button class="cbtn cancel" id="orderLast">Dernier match</button>
+      <button class="cbtn cancel" id="orderClear">Effacer</button>
+    </div>
+    <div class="confirm-btns">
+      <button class="cbtn cancel" id="orderCancel">Annuler</button>
+      <button class="cbtn confirmBlue" id="orderOk">OK</button>
     </div>
   </div>
 </div>
@@ -726,6 +774,15 @@ function freshSet(names, roles) {
   return { nous:0, adv:0, swapped:false, stats:stats, roles:setRoles, absent:setAbsent, startPos:setPos, hist:[], log:[], confirmed:false, lineup:null, lineupStart:null, serve:null, needRot:false };
 }
 
+// 4.1 : un match a autant de sets qu'il en faut (2 au départ, « + » pour en ajouter)
+function SETS(m) { return Object.keys(m.sets).map(Number).filter(function(x){ return x > 0; }).sort(function(a,b){ return a-b; }); }
+// sets montrés dans la rangée : 1 et 2, plus ceux qui ont servi ou ont été ajoutés
+function visibleSets(m) {
+  return SETS(m).filter(function(i){
+    var x = m.sets[i];
+    return i <= 2 || i === m.curSet || x.added || x.nous || x.adv || (x.log && x.log.length && setHasRallies(x));
+  });
+}
 function freshMatch(idx, names, initialRoles) {
   return {
     id: uid(),
@@ -738,8 +795,7 @@ function freshMatch(idx, names, initialRoles) {
     notes: '',
     sets: {
       1: freshSet(names, initialRoles),
-      2: freshSet(names, initialRoles),
-      3: freshSet(names, initialRoles)
+      2: freshSet(names, initialRoles)
     }
   };
 
@@ -800,7 +856,7 @@ function load() {
         t.matches.forEach(function(m){
           if (!m.absent) m.absent = {};
           if (m.notes === undefined) m.notes = '';
-          [1,2,3].forEach(function(i){
+          SETS(m).forEach(function(i){
             var s = m.sets[i];
             if (!s) return;
             if (!s.roles) {
@@ -899,10 +955,12 @@ function renderScore() {
 }
 
 function renderSet() {
-  var m = M();
-  [1,2,3].forEach(function(i){
-    document.getElementById('s'+i).className = 'set-btn' + (m.curSet===i ? ' on' : '');
-  });
+  var m = M(), v = visibleSets(m), row = document.getElementById('setsRow');
+  var h = v.length >= 4 ? '' : '<span class="set-lbl">Set</span>';
+  v.forEach(function(i){ h += '<button class="set-btn' + (m.curSet===i ? ' on' : '') + '" data-set="'+i+'">'+i+'</button>'; });
+  h += '<button class="set-btn plus' + (m.ended ? ' ended' : '') + '" id="setPlus">' + (m.ended ? '✓' : '+') + '</button>';
+  row.innerHTML = h;
+  row.classList.toggle('many', v.length >= 5);
 }
 
 // ═══════════════════════════════════════════
@@ -1128,11 +1186,130 @@ function renderPlayers() {
   chips.forEach(function(c){
     html += '<span class="chip" data-bench="'+c.n+'" data-drag="'+c.n+'">'+c.n+(c.note ? ' <i>('+c.note+')</i>' : '')+'</span>';
   });
-  html += '</span><span class="rot-btns"><button class="rot-btn back" onclick="rotateTeam(-1)" title="Reculer d\'une rotation">↺</button>'+
+  html += '</span><span class="rot-btns"><button class="rot-btn order" onclick="openOrder()">Ordre</button><button class="rot-btn back" onclick="rotateTeam(-1)" title="Reculer d\'une rotation">↺</button>'+
           '<button class="rot-btn" onclick="rotateTeam(1)" title="Rotation">↻</button></span>';
   html += '</div>';
   el.innerHTML = html;
 }
+// ═══ 4.1 : ORDRE DE DÉPART ═══
+// On touche les 6 joueuses dans l'ordre de la feuille de match. Si le set est déjà
+// commencé, on refait tout le set avec le bon ordre : serveuses, services, rotations.
+var _order = [];
+function orderCandidates() { var s = S(), m = M(); return activeNames(s, m).filter(function(n){ return roleOf(s, n) !== 'L'; }); }
+function openOrder() {
+  var s = S(), m = M(); ensureLineup(s, m);
+  _order = [];
+  document.getElementById('orderTitle').textContent = 'Ordre de départ · Set ' + m.curSet;
+  var nr = buildRallies(s).length;
+  document.getElementById('orderWarn').textContent = setHasRallies(s) ? 'Set commencé : les ' + nr + ' échanges déjà joués seront recalculés avec ce nouvel ordre.' : '';
+  document.getElementById('orderLast').style.display = lastMatchStart() ? '' : 'none';
+  renderOrder();
+  document.getElementById('orderOverlay').classList.add('show');
+}
+function lastMatchStart() {
+  var t = T(), m = M(), i = t.matches.indexOf(m);
+  for (var k = i - 1; k >= 0; k--) { var x = t.matches[k].sets[1]; if (x && x.lineupStart && setHasRallies(x)) return x.lineupStart.slice(); }
+  return null;
+}
+function renderOrder() {
+  var h = '';
+  for (var i = 0; i < 6; i++) h += '<div class="' + (i === _order.length ? 'next' : '') + '"><small>Position ' + (i+1) + (i === 0 ? ' · service' : '') + '</small>' + (_order[i] || '') + '</div>';
+  document.getElementById('orderSlots').innerHTML = h;
+  document.getElementById('orderNames').innerHTML = orderCandidates().map(function(n){
+    return '<button class="' + (_order.indexOf(n) >= 0 ? 'used' : '') + '" data-o="' + n + '">' + n + '</button>'; }).join('');
+  document.getElementById('orderOk').disabled = _order.length !== 6;
+  document.getElementById('orderOk').style.opacity = _order.length === 6 ? 1 : .4;
+}
+document.getElementById('orderNames').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  var n = b.getAttribute('data-o'), i = _order.indexOf(n);
+  if (i >= 0) _order = _order.slice(0, i);          // retoucher un nom : on reprend à partir de lui
+  else if (_order.length < 6) _order.push(n);
+  renderOrder();
+});
+document.getElementById('orderClear').onclick = function(){ _order = []; renderOrder(); };
+document.getElementById('orderBase').onclick = function(){
+  var c = orderCandidates(); _order = BASE_LINEUP.filter(function(n){ return c.indexOf(n) >= 0; }); renderOrder();
+};
+document.getElementById('orderLast').onclick = function(){
+  var c = orderCandidates(), l = lastMatchStart() || []; _order = l.filter(function(n){ return n && c.indexOf(n) >= 0; }).slice(0, 6); renderOrder();
+};
+document.getElementById('orderCancel').onclick = function(){ document.getElementById('orderOverlay').classList.remove('show'); };
+document.getElementById('orderOk').onclick = function(){
+  if (_order.length !== 6) return;
+  applyOrder(S(), _order.slice());
+  document.getElementById('orderOverlay').classList.remove('show');
+  renderPlayers(); renderServe(); renderScore(); save();
+};
+function applyOrder(s, start) {
+  snap();                                             // Annuler remet tout comme avant (journal compris)
+  var h = JSON.parse(s.hist.pop()); h.logFull = JSON.parse(JSON.stringify(s.log || [])); s.hist.push(JSON.stringify(h));
+  if (!setHasRallies(s)) {
+    s.lineup = start.slice(); s.lineupStart = start.slice();
+    s.log = (s.log || []).filter(function(ev){ return !(ev.e === 'sv' && ev.auto); });
+    if (s.log.every(function(ev){ return ev.e !== 'sv'; })) s.serve = null;   // l'appli redéduit le service (libero en 1)
+    s.srvTurn = null;
+    ensureLineup(s, M());
+    toast('Ordre de départ enregistré');
+    return;
+  }
+  var n = recomputeSet(s, start);
+  toast('Ordre corrigé · ' + n + ' échanges recalculés');
+}
+function isClosing(ev) { return (ev.e === 'st' && ev.sc) || ev.e === 'p'; }
+function rotK(a, k) { k = ((k % 6) + 6) % 6; return a.slice(k).concat(a.slice(0, k)); }
+function rotOf(a, b) {          // b est-il a tourné de k positions ? (k ou -1)
+  for (var k = 0; k < 6; k++) { var r = rotK(a, k), ok = true; for (var i = 0; i < 6; i++) if (r[i] !== b[i]) { ok = false; break; } if (ok) return k; }
+  return -1;
+}
+function recomputeSet(s, start) {
+  var log = s.log || [], out = [], oldCur = (s.lineupStart || s.lineup || []).slice(), cur = start.slice();
+  // qui servait au premier échange : dernier choix NOUS/EUX avant lui, sinon ce que l'appli avait déduit
+  var serve = null;
+  for (var i = 0; i < log.length; i++) {
+    if (isClosing(log[i])) { if (!serve) serve = (i > 0 && log[i-1].e === 'svt') ? 'N' : 'A'; break; }
+    if (log[i].e === 'sv') serve = log[i].side;
+  }
+  var saveL = s.lineup, saveS = s.serve, nb = 0;
+  log.forEach(function(ev){
+    if (ev.e === 'svt' && ev.auto) return;                    // refait plus bas
+    if (ev.e === 'sv') { serve = ev.side; out.push(ev); return; }
+    if (ev.e === 'lu' && ev.lu) {                              // changement fait à la main : on le refait sur le bon ordre
+      var after = ev.lu, k = rotOf(oldCur, after);
+      if (k >= 0) cur = rotK(cur, k);
+      else { var sub = {}; for (var j = 0; j < 6; j++) if (oldCur[j] !== after[j]) sub[oldCur[j]] = after[j];
+             cur = cur.map(function(x){ return (x in sub) ? sub[x] : x; }); }
+      oldCur = after.slice(); ev.lu = cur.slice(); out.push(ev); return;
+    }
+    if (isClosing(ev)) {
+      // ancien alignement au moment de l'échange (rattrape les corrections de serveuse)
+      if (ev.on) { var oo = ev.on.map(function(x){ return (x && x === s.libero && ev.libFor) ? ev.libFor : x; });
+                   var k2 = rotOf(oldCur, oo); if (k2 > 0) { cur = rotK(cur, k2); oldCur = oo; } }
+      // le service raté ou l'As appartient à la vraie serveuse
+      if (ev.e === 'st' && (ev.t === 'srv' || ev.t === 'as') && serve === 'N' && cur[0] && ev.n !== cur[0] && s.stats[cur[0]]) {
+        var o = s.stats[ev.n], nw = s.stats[cur[0]];
+        if (o) { o[ev.t] = Math.max(0, (o[ev.t]||0) - 1); if (ev.t === 'as') o.pts = Math.max(0, (o.pts||0) - 1); }
+        nw[ev.t] = (nw[ev.t]||0) + 1; if (ev.t === 'as') nw.pts = (nw.pts||0) + 1;
+        ev.n = cur[0];
+      }
+      if (serve === 'N' && cur[0]) out.push({e:'svt', n:cur[0], auto:true, ts:ev.ts || Date.now()});
+      s.lineup = cur; s.serve = serve;
+      ev.on = onCourt(s); ev.rot = rotationNo(s); var li = liberoSlot(s); ev.libFor = li >= 0 ? s.lineup[li] : '';
+      var side = ev.e === 'p' ? ev.side : ev.sc;
+      if (side === 'N' && serve === 'A') { cur = rotK(cur, 1); oldCur = rotK(oldCur, 1); }
+      serve = side; nb++;
+      out.push(ev); return;
+    }
+    out.push(ev);
+  });
+  s.log = out;
+  // services comptés : recomptés à partir du journal refait
+  Object.keys(s.stats).forEach(function(n){ s.stats[n].svt = 0; });
+  out.forEach(function(ev){ if (ev.e === 'svt' && s.stats[ev.n]) s.stats[ev.n].svt++; });
+  s.lineup = cur; s.serve = serve; s.lineupStart = start.slice(); s.srvTurn = null;
+  return nb;
+}
+
 // Bouton Rotation : tout le monde avance d'une position (2 → 1, 1 → 6). ↺ recule d'une position.
 // Rien n'est compté; le service ne change pas.
 function rotateTeam(dir) {
@@ -1474,11 +1651,12 @@ document.getElementById('curveClose').onclick = function(){ document.getElementB
 // Avertit si le score ne ressemble pas à une fin de set normale (25, ou 15 au set 3, avec 2 d'écart).
 // C'est seulement un avertissement : un set à 21 reste possible, on peut confirmer quand même.
 function scoreWarning(n, a, setNo) {
-  var cible = (setNo === 3) ? 15 : 25, hi = Math.max(n, a), lo = Math.min(n, a);
-  if (hi < cible) return 'Aucune équipe n\'a ' + cible + ' points. Vérifie le score.';
+  // 4.1 : sans savoir si le set se jouait à 15 ou à 25 : il faut que quelqu'un ait 15 ou 25
+  // avec 2 points d'écart, ou plus que 15 avec exactement 2 points d'écart (prolongation)
+  var hi = Math.max(n, a), lo = Math.min(n, a);
   if (hi - lo < 2) return 'Moins de 2 points d\'écart. Vérifie le score.';
-  if (hi > cible && hi - lo > 2) return 'Au-delà de ' + cible + ', l\'écart devrait être de 2. Vérifie le score.';
-  return '';
+  if (hi === 15 || hi === 25 || (hi > 15 && hi - lo === 2)) return '';
+  return 'Personne n\'a 15 ou 25 points. Vérifie le score.';
 }
 var _finalNext = null;
 function askFinal(nextFn) {
@@ -1537,9 +1715,55 @@ function switchSet(i) {
   if (!s.confirmed && (s.nous || s.adv)) askFinal(go);   // on quitte un set : on confirme son score
   else go();
 }
-document.getElementById('s1').onclick = function() { switchSet(1); };
-document.getElementById('s2').onclick = function() { switchSet(2); };
-document.getElementById('s3').onclick = function() { switchSet(3); };
+document.getElementById('setsRow').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'setPlus') { openPlus(); return; }
+  switchSet(parseInt(b.getAttribute('data-set'), 10));
+});
+// « + » : nouveau set ou fin du match
+// set qui suit : le prochain set vide après celui en cours, sinon un nouveau à la fin
+function nextSetNo(m) {
+  var nx = m.sets[m.curSet + 1];
+  if (nx && !nx.nous && !nx.adv && !setHasRallies(nx)) return m.curSet + 1;
+  var v = visibleSets(m); return Math.max(v[v.length - 1], m.curSet) + 1;
+}
+function openPlus() {
+  var m = M(), nx = nextSetNo(m);
+  document.getElementById('plusTitle').textContent = m.ended ? 'Match terminé' : 'Set ' + m.curSet;
+  document.getElementById('plusNew').textContent = 'Nouveau set (' + nx + ')';
+  document.getElementById('plusEnd').style.display = m.ended ? 'none' : '';
+  document.getElementById('plusOverlay').classList.add('show');
+}
+function closePlus() { document.getElementById('plusOverlay').classList.remove('show'); }
+function confirmThen(fn) {      // confirme le score du set en cours (s'il y a des points) avant de continuer
+  var s = S();
+  if (!s.confirmed && (s.nous || s.adv)) askFinal(fn); else fn();
+}
+document.getElementById('plusCancel').onclick = closePlus;
+document.getElementById('plusNew').onclick = function(){
+  closePlus();
+  confirmThen(function(){
+    var m = M(), k = nextSetNo(m), prev = m.sets[m.curSet];
+    if (!m.sets[k]) m.sets[k] = freshSet(m.names, prev.roles);
+    m.sets[k].added = true;
+    m.names.forEach(function(n){ if (prev.absent && prev.absent[n]) m.sets[k].absent[n] = true; });
+    m.ended = false; m.curSet = k;
+    renderAll(); save(); toast('Set ' + k);
+  });
+};
+document.getElementById('plusEnd').onclick = function(){
+  closePlus();
+  confirmThen(function(){
+    var m = M(); m.ended = true;
+    var r = matchResult(m), txt = {V:'Victoire', D:'Défaite', E:'Égalité', NP:'Non joué'}[r];
+    renderAll(); save(); toast('Match terminé · ' + txt + ' ' + matchSetScoreLine(m));
+  });
+};
+function matchSetScoreLine(m) {
+  var w = 0, l = 0;
+  SETS(m).forEach(function(i){ var x = m.sets[i], N = scoreOf(x,'N'), A = scoreOf(x,'A'); if (N > A) w++; else if (A > N) l++; });
+  return w + '-' + l;
+}
 
 // Appui long sur SRV = As au service (pas de bouton de plus : on réutilise SRV,
 // l'appui court reste "service manqué" comme avant). Un petit point jaune sur le
@@ -1638,7 +1862,8 @@ document.getElementById('btnUndo').onclick = function() {
   s.stats = prev.stats;
   if (prev.nous !== undefined) s.nous = prev.nous;
   if (prev.adv  !== undefined) s.adv  = prev.adv;
-  if (prev.logLen !== undefined && s.log) s.log.length = prev.logLen;
+  if (prev.logFull) s.log = prev.logFull;
+  else if (prev.logLen !== undefined && s.log) s.log.length = prev.logLen;
   if (prev.confirmed !== undefined) s.confirmed = prev.confirmed;
   if (prev.lineup !== undefined) { s.lineup = prev.lineup; s.serve = prev.serve; if (prev.libero === '__u') delete s.libero; else s.libero = prev.libero; s.liberoOut = !!prev.liberoOut; s.liberoFor = prev.liberoFor; s.srvTurn = prev.srvTurn || null; renderPlayers(); renderServe(); }
   activeNames().forEach(function(n) {
@@ -1659,11 +1884,9 @@ document.getElementById('btnReset').onclick = function() {
     var m = M();
     m.sets = {
       1: freshSet(m.names, m.sets[1].roles),
-
-      2: freshSet(m.names, m.sets[2].roles),
-      3: freshSet(m.names, m.sets[3].roles)
+      2: freshSet(m.names, m.sets[2].roles)
     };
-    m.curSet = 1;
+    m.curSet = 1; m.ended = false;
     renderAll(); save(); toast('Match réinitialisé');
   });
 };
@@ -1752,10 +1975,10 @@ document.getElementById('playersList').addEventListener('click', function(e) {
     var next = cur === 'A' ? 'P' : (cur === 'P' ? 'L' : (cur === 'L' ? 'C' : 'A'));
     s.roles[n] = next;
     // le rôle suit aussi dans les sets suivants qui n'ont pas commencé
-    for (var si = m.curSet + 1; si <= 3; si++) {
+    SETS(m).filter(function(x){ return x > m.curSet; }).forEach(function(si){
       var ns = m.sets[si];
       if (ns && !setHasRallies(ns)) { ns.roles[n] = next; ns.liberoFor = null; }
-    }
+    });
     if (next === 'L') {
       if (!s.startPos) s.startPos = {};
       s.startPos[n] = 7;
@@ -1775,7 +1998,7 @@ document.getElementById('playersList').addEventListener('click', function(e) {
         // Retirer aussi du match courant
         m.names = m.names.filter(function(x){ return x !== name; });
         delete m.absent[name];
-        [1,2,3].forEach(function(i){ delete m.sets[i].absent[name]; });
+        SETS(m).forEach(function(i){ delete m.sets[i].absent[name]; });
         renderPlayersModal();
         renderPlayers();
         save();
@@ -1827,7 +2050,7 @@ document.getElementById('addPlayerBtn').onclick = function() {
   // Ajouter au match courant
   m.names.push(name);
   // Ajouter aux 3 sets
-  [1,2,3].forEach(function(i){
+  SETS(m).forEach(function(i){
     m.sets[i].stats[name] = freshStats();
     m.sets[i].roles[name] = 'A';
     m.sets[i].absent[name] = false;
@@ -1887,7 +2110,7 @@ function matchResult(m) {
   // Retourne 'V' / 'D' / 'E' / 'NP' (non joué)
 
   var setsW=0, setsL=0, anyPlayed=false;
-  [1,2,3].forEach(function(i){
+  SETS(m).forEach(function(i){
     var s = m.sets[i];
     var sn = s.swapped ? s.adv : s.nous;
     var sa = s.swapped ? s.nous : s.adv;
@@ -1899,12 +2122,17 @@ function matchResult(m) {
   if (!anyPlayed) return 'NP';
   if (setsW > setsL) return 'V';
   if (setsW < setsL) return 'D';
+  // sets égaux : le total des petits points décide (RSEQ)
+  var pf = 0, pa = 0;
+  SETS(m).forEach(function(i){ var x = m.sets[i]; pf += x.swapped ? x.adv : x.nous; pa += x.swapped ? x.nous : x.adv; });
+  if (pf > pa) return 'V';
+  if (pf < pa) return 'D';
   return 'E';
 }
 
 function matchSetScores(m) {
   var arr = [];
-  [1,2,3].forEach(function(i){
+  SETS(m).forEach(function(i){
     var s = m.sets[i];
     var sn = s.swapped ? s.adv : s.nous;
     var sa = s.swapped ? s.nous : s.adv;
@@ -1932,7 +2160,7 @@ function tournamentCumul() {
       if (m.absent[n]) return;
       if (!(n in totals)) { totals[n] = freshStats(); matchesPlayed[n] = 0; }
       matchesPlayed[n]++;
-      [1,2,3].forEach(function(i){
+      SETS(m).forEach(function(i){
         var s = m.sets[i];
         var sn = s.swapped ? s.adv : s.nous;
         var sa = s.swapped ? s.nous : s.adv;
@@ -1974,7 +2202,7 @@ function renderTournamentScreen() {
     if (res === 'NP') return;
     played++;
     if (res === 'V') wins++; else if (res === 'D') losses++; else eq++;
-    [1,2,3].forEach(function(i){
+    SETS(m).forEach(function(i){
       var s = m.sets[i];
       var sn = s.swapped ? s.adv : s.nous;
       var sa = s.swapped ? s.nous : s.adv;
@@ -2088,6 +2316,7 @@ document.getElementById('btnNewMatch').onclick = function() {
       renderTournamentScreen();
       save();
       toast('Nouveau match créé');
+      setTimeout(openOrder, 350);   // ordre de départ du set 1 : Base, Dernier match ou nouveau
     });
   });
 
@@ -2369,7 +2598,7 @@ function buildTournamentPreviewText() {
     txt += m.name + ' · vs ' + (m.adverse||ADV_NONE) + '\n';
     txt += d + ' · ' + resTxt + ' · ' + matchSetScores(m) + '\n';
     txt += '══════════════════════════════\n\n';
-    [1,2,3].forEach(function(si){
+    SETS(m).forEach(function(si){
       var ss = m.sets[si];
       if (!ss.nous && !ss.adv) return;   // set pas joué : on ne l'affiche pas
       txt += buildSetBlock(si, m) + '\n';
@@ -2417,7 +2646,7 @@ function buildTournamentText() {
     var res = matchResult(m); if (res==='NP') return;
     played++;
     if (res==='V') w++; else if (res==='D') l++; else e++;
-    [1,2,3].forEach(function(i){
+    SETS(m).forEach(function(i){
       var s = m.sets[i];
       var sn = s.swapped ? s.adv : s.nous;
       var sa = s.swapped ? s.nous : s.adv;
@@ -2436,7 +2665,7 @@ function buildTournamentText() {
     out += matchSetScores(m) + '\n';
     out += '══════════════════════════════\n\n';
     // Sets de ce match
-    [1,2,3].forEach(function(si){
+    SETS(m).forEach(function(si){
       var s = m.sets[si];
       var scoreNous = s.swapped ? s.adv : s.nous;
       var scoreAdv  = s.swapped ? s.nous : s.adv;
@@ -2490,7 +2719,7 @@ var JOURNAL_HEAD = ['Tournoi','Match','Adversaire','Set','No','Gagnant','Score N
 function journalRows(t) {
   var rows = [];
   t.matches.forEach(function(m){
-    [1,2,3].forEach(function(si){
+    SETS(m).forEach(function(si){
       var s = m.sets[si];
       if (!s.log || !s.log.length) return;
       buildRallies(s).forEach(function(r, k){
@@ -2532,7 +2761,7 @@ function buildAllCSV() {
 function detailRows(t) {
   var out = [];
   t.matches.forEach(function(m){
-    [1,2,3].forEach(function(si){
+    SETS(m).forEach(function(si){
       var s = m.sets[si];
       var sn = s.swapped ? s.adv : s.nous;
       var sa = s.swapped ? s.nous : s.adv;
@@ -2562,7 +2791,7 @@ function buildTournamentCSV() {
     var res = matchResult(m); if (res==='NP') return;
     played++;
     if (res==='V') w++; else if (res==='D') l++; else e++;
-    [1,2,3].forEach(function(i){
+    SETS(m).forEach(function(i){
       var s = m.sets[i];
       var sn = s.swapped ? s.adv : s.nous;
       var sa = s.swapped ? s.nous : s.adv;
@@ -2878,20 +3107,20 @@ var live = (function(){
   function setDone(m, i, isActive) {
     var s = m.sets[i];
     if (!s || !(s.nous || s.adv)) return false;
-    return !!s.confirmed || !isActive || i < m.curSet;
+    return !!s.confirmed || !!m.ended || !isActive || i < m.curSet;
   }
 
   function payload() {
     var t = T(), m = M(), s = S(), w = 0, l = 0;
     t.matches.forEach(function(mm){
-      [1,2,3].forEach(function(i){
+      SETS(mm).forEach(function(i){
         if (!setDone(mm, i, mm === m)) return;
         var x = mm.sets[i], N = scoreOf(x,'N'), A = scoreOf(x,'A');
         if (N > A) w++; else if (A > N) l++;
       });
     });
     var sets = [];
-    [1,2,3].forEach(function(i){
+    SETS(m).forEach(function(i){
       var x = m.sets[i];
       if (!x || (!(x.nous || x.adv) && i !== m.curSet)) return;
       sets.push({ n:i, nous:scoreOf(x,'N'), eux:scoreOf(x,'A'), fini:setDone(m, i, true) });
@@ -2901,7 +3130,7 @@ var live = (function(){
     var matchs = [];
     t.matches.forEach(function(mm){
       var g = 0, pp = 0, sc = [], cur = (mm === m);
-      [1,2,3].forEach(function(i){
+      SETS(mm).forEach(function(i){
         var x = mm.sets[i];
         if (!x || !(x.nous || x.adv)) return;
         var N = scoreOf(x,'N'), A = scoreOf(x,'A'), fini = setDone(mm, i, cur);
