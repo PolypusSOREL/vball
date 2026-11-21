@@ -65,7 +65,8 @@ body {
 .order-warn { font-size: 14px; color: #ffd166; font-weight: 700; margin-bottom: 8px; }
 .order-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0 12px; }
 .order-slots div { border: 1px solid #4a4a6a; border-radius: 10px; padding: 8px 6px; min-height: 52px; color: #fff; font-size: 17px; font-weight: 700; }
-.order-slots div small { display: block; font-size: 11px; color: #9090a8; font-weight: 600; }
+.order-slots div small { display: block; font-size: 13px; color: #9090a8; font-weight: 700; }
+.order-net { text-align: center; font-size: 11px; letter-spacing: 3px; color: #9090a8; border-bottom: 2px solid #9090a8; padding-bottom: 2px; margin-top: 6px; }
 .order-slots div.next { border-color: #4f8eff; box-shadow: 0 0 0 1px #4f8eff; }
 .order-names { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
 .order-names button { height: 56px; border-radius: 12px; border: 1px solid #4a4a6a; background: #1e1e2e; color: #fff; font-size: 19px; font-weight: 700; font-family: inherit; }
@@ -434,7 +435,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.1 <span style="font-size:10px;color:#ffb800;">ESSAI 4</span></span>
+    <span class="logo">VBALL 4.1 <span style="font-size:10px;color:#ffb800;">ESSAI 5</span></span>
     <span class="live-dot off" id="liveDot" title="Diffusion en direct">📡</span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
@@ -521,6 +522,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
     <h3 id="orderTitle">Ordre de départ</h3>
     <p class="order-help">Touche les 6 joueuses dans l'ordre de la feuille de match (1 = au service). La libero remplace la centrale toute seule.</p>
     <p class="order-warn" id="orderWarn"></p>
+    <div class="order-net">FILET</div>
     <div class="order-slots" id="orderSlots"></div>
     <div class="order-names" id="orderNames"></div>
     <div class="order-quick">
@@ -1213,7 +1215,8 @@ function lastMatchStart() {
 }
 function renderOrder() {
   var h = '';
-  for (var i = 0; i < 6; i++) h += '<div class="' + (i === _order.length ? 'next' : '') + '"><small>Position ' + (i+1) + (i === 0 ? ' · service' : '') + '</small>' + (_order[i] || '') + '</div>';
+  // disposé comme sur le terrain : 4 3 2 en avant, 5 6 1 en arrière (le 1 en bas à droite)
+  [3,2,1,4,5,0].forEach(function(i){ h += '<div class="' + (i === _order.length ? 'next' : '') + '"><small>' + (i+1) + (i === 0 ? ' · service' : '') + '</small>' + (_order[i] || '') + '</div>'; });
   document.getElementById('orderSlots').innerHTML = h;
   document.getElementById('orderNames').innerHTML = orderCandidates().map(function(n){
     return '<button class="' + (_order.indexOf(n) >= 0 ? 'used' : '') + '" data-o="' + n + '">' + n + '</button>'; }).join('');
