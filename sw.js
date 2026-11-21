@@ -1,9 +1,8 @@
 // Service worker de la VERSION OFFICIELLE : garde une copie de l'appli dans le téléphone
-// pour qu'elle s'ouvre sans Internet (gymnase). Les stats restent dans le téléphone
-// (localStorage, clé vb40) et ne passent jamais par Internet.
+// pour qu'elle s'ouvre sans Internet. Les stats restent dans le téléphone (clé vb41).
 //
 // Pour publier une nouvelle version : changer le numéro ci-dessous.
-var CACHE = 'vball-v4.0-1';
+var CACHE = 'vball-v4.1-1';
 var FILES = [
   './',
   './index.html',
@@ -23,7 +22,7 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
-      // ne touche qu'aux anciens caches de la version officielle (jamais à ceux de l'essai)
+      // ne touche qu'aux anciens caches de la version d'essai
       return Promise.all(keys.filter(function (k) { return k.indexOf('vball-v') === 0 && k !== CACHE; })
         .map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })

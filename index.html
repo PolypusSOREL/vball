@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<title>VBall 4.0</title>
+<title>VBall 4.1</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -52,6 +52,28 @@ body {
   font-family: inherit; cursor: pointer;
 }
 .set-btn.on { background: #4f8eff; border-color: #4f8eff; color: #fff; }
+.set-btn.plus { flex: 0 0 44px; font-size: 20px; padding: 5px 0; }
+.set-btn.plus.ended { color: #00e070; border-color: #00e070; }
+.sets.many { gap: 5px; }
+/* ORDRE DE DÉPART */
+.order-overlay { display: none; position: fixed; inset: 0; background: #0f0f17; z-index: 320; overflow-y: auto;
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom)); }
+.order-overlay.show { display: block; }
+.order-box { max-width: 520px; margin: 0 auto; }
+.order-box h3 { font-size: 20px; color: #fff; margin-bottom: 6px; }
+.order-help { font-size: 14px; color: #b0b0c8; line-height: 1.4; margin-bottom: 6px; }
+.order-warn { font-size: 14px; color: #ffd166; font-weight: 700; margin-bottom: 8px; }
+.order-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0 12px; }
+.order-slots div { border: 1px solid #4a4a6a; border-radius: 10px; padding: 8px 6px; min-height: 52px; color: #fff; font-size: 17px; font-weight: 700; }
+.order-slots div small { display: block; font-size: 13px; color: #9090a8; font-weight: 700; }
+.order-net { text-align: center; font-size: 11px; letter-spacing: 3px; color: #9090a8; border-bottom: 2px solid #9090a8; padding-bottom: 2px; margin-top: 6px; }
+.order-slots div.next { border-color: #4f8eff; box-shadow: 0 0 0 1px #4f8eff; }
+.order-names { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+.order-names button { height: 56px; border-radius: 12px; border: 1px solid #4a4a6a; background: #1e1e2e; color: #fff; font-size: 19px; font-weight: 700; font-family: inherit; }
+.order-names button.used { opacity: .3; }
+.order-quick { display: flex; gap: 8px; margin-bottom: 12px; }
+.order-quick .cbtn { height: 44px; font-size: 14px; }
+.rot-btn.order { width: auto; padding: 0 10px; font-size: 14px; border-color: #4a4a6a; background: #2a2a3e; }
 
 /* SCORE */
 .scoreboard {
@@ -101,6 +123,7 @@ body {
 }
 .pname { font-size: 15px; font-weight: 700; min-width: 40px; color: #ffffff; cursor: pointer; user-select: none; -webkit-user-select: none; }
 .pname:active { opacity: .55; }
+.svt-badge.red { background: rgba(255,69,58,.22); color: #ff5a4f; margin-left: 3px; }
 .svt-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 17px; height: 17px; padding: 0 4px; margin-left: 4px;
@@ -400,6 +423,11 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 .chip i { font-style: normal; font-size: 11px; color: #9090a8; font-weight: 600; }
 .adverse-input { min-width: 0; width: 100%; }
 .prow.special.server-row { border: 2px solid #f5c518; }
+.live-dot { font-size: 16px; padding: 2px 6px; border-radius: 8px; cursor: pointer; display: none; }
+.live-dot.ok   { background: rgba(0,255,120,.25); }
+.live-dot.wait { background: rgba(245,197,24,.3); }
+.live-dot.err  { background: rgba(255,60,60,.45); }
+.live-link { font-size: 13px; color: #6ba5ff; word-break: break-all; background: #1e1e2e; border-radius: 10px; padding: 10px; }
 </style>
 </head>
 <body>
@@ -407,16 +435,12 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
 <!-- HEADER -->
 <div class="header">
   <div class="header-row1">
-    <span class="logo">VBALL 4.0</span>
+    <span class="logo">VBALL 4.1</span>
+    <span class="live-dot off" id="liveDot" title="Diffusion en direct">📡</span>
     <input class="adverse-input" id="advInput" type="text" placeholder="Équipe adverse…" maxlength="30">
   </div>
   <div class="match-info" id="matchInfo">—</div>
-  <div class="sets">
-    <span class="set-lbl">Set</span>
-    <button class="set-btn on" id="s1">1</button>
-    <button class="set-btn"    id="s2">2</button>
-    <button class="set-btn"    id="s3">3</button>
-  </div>
+  <div class="sets" id="setsRow"></div>
   <div class="corr-banner" id="corrBanner">CORRECTION</div>
 </div>
 
@@ -476,6 +500,39 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
     <div class="confirm-btns">
       <button class="cbtn cancel"  id="confirmCancel">Annuler</button>
       <button class="cbtn confirm" id="confirmOk">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- « + » : NOUVEAU SET OU FIN DU MATCH -->
+<div class="confirm-overlay" id="plusOverlay">
+  <div class="confirm-box">
+    <h3 id="plusTitle">Set</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
+      <button class="cbtn confirmBlue" id="plusNew" style="height:56px;font-size:17px;">Nouveau set</button>
+      <button class="cbtn" id="plusEnd" style="height:56px;font-size:17px;background:#000;color:#fff;border:2px solid #fff;">Fin du match</button>
+      <button class="cbtn cancel" id="plusCancel">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDRE DE DÉPART -->
+<div class="order-overlay" id="orderOverlay">
+  <div class="order-box">
+    <h3 id="orderTitle">Ordre de départ</h3>
+    <p class="order-help">Touche les 6 joueuses dans l'ordre de la feuille de match (1 = au service). La libero remplace la centrale toute seule.</p>
+    <p class="order-warn" id="orderWarn"></p>
+    <div class="order-net">FILET</div>
+    <div class="order-slots" id="orderSlots"></div>
+    <div class="order-names" id="orderNames"></div>
+    <div class="order-quick">
+      <button class="cbtn cancel" id="orderBase">Base</button>
+      <button class="cbtn cancel" id="orderLast">Dernier match</button>
+      <button class="cbtn cancel" id="orderClear">Effacer</button>
+    </div>
+    <div class="confirm-btns">
+      <button class="cbtn cancel" id="orderCancel">Annuler</button>
+      <button class="cbtn confirmBlue" id="orderOk">OK</button>
     </div>
   </div>
 </div>
@@ -612,6 +669,7 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
       <button class="tbtn primary" id="btnNewMatch">+ Nouveau match</button>
       <button class="tbtn"         id="btnRenameTourn">✏️ Renommer</button>
       <button class="tbtn"         id="btnSwitchTourn">📁 Tournois</button>
+      <button class="tbtn accent"  id="btnLive">📡 Direct</button>
     </div>
 
     <div class="tourn-recap" id="tournRecap">—</div>
@@ -630,6 +688,23 @@ body.corr .court, body.corr .bottom-rows, body.corr .bench-zone { opacity: .25; 
     </div>
 
     <button class="mbtn close" id="tournClose" style="width:100%; margin-top:14px;">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL DIFFUSION EN DIRECT -->
+<div class="overlay" id="liveOverlay">
+  <div class="modal">
+    <div class="modal-title">📡 Score en direct pour les parents</div>
+    <div class="modal-hint">Quand c'est en marche, chaque point envoie le score, le dernier point et les sets.
+      Les parents ouvrent le lien dans leur navigateur, rien à installer.
+      Nos erreurs s'affichent « Point adverse », sans nom.</div>
+    <div class="modal-hint" id="liveStatus" style="color:#f5c518; font-weight:700;">—</div>
+    <div class="live-link" id="liveLink">—</div>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+      <button class="mbtn copy" id="liveToggle">📡 Démarrer la diffusion</button>
+      <button class="mbtn close" id="liveShare">🔗 Envoyer le lien aux parents</button>
+      <button class="mbtn close" id="liveClose">Fermer</button>
+    </div>
   </div>
 </div>
 
@@ -701,6 +776,15 @@ function freshSet(names, roles) {
   return { nous:0, adv:0, swapped:false, stats:stats, roles:setRoles, absent:setAbsent, startPos:setPos, hist:[], log:[], confirmed:false, lineup:null, lineupStart:null, serve:null, needRot:false };
 }
 
+// 4.1 : un match a autant de sets qu'il en faut (2 au départ, « + » pour en ajouter)
+function SETS(m) { return Object.keys(m.sets).map(Number).filter(function(x){ return x > 0; }).sort(function(a,b){ return a-b; }); }
+// sets montrés dans la rangée : 1 et 2, plus ceux qui ont servi ou ont été ajoutés
+function visibleSets(m) {
+  return SETS(m).filter(function(i){
+    var x = m.sets[i];
+    return i <= 2 || i === m.curSet || x.added || x.nous || x.adv || (x.log && x.log.length && setHasRallies(x));
+  });
+}
 function freshMatch(idx, names, initialRoles) {
   return {
     id: uid(),
@@ -713,8 +797,7 @@ function freshMatch(idx, names, initialRoles) {
     notes: '',
     sets: {
       1: freshSet(names, initialRoles),
-      2: freshSet(names, initialRoles),
-      3: freshSet(names, initialRoles)
+      2: freshSet(names, initialRoles)
     }
   };
 
@@ -756,14 +839,30 @@ var ADV_NONE = 'Adversaire non nommé';
 var autoScoreEnabled = true;
 
 function save() {
-  try { localStorage.setItem('vb40', JSON.stringify(DB)); } catch(e){}
+  try { localStorage.setItem('vb41', JSON.stringify(DB)); } catch(e){}
+  if (window.live) live.tick();
 }
 
 function load() {
   try {
-    var raw = localStorage.getItem('vb40');
+    // 4.1 officielle : données vb41 (celles de l'essai 4.1). Au premier lancement, on y ajoute
+    // les tournois notés seulement dans la 4.0 officielle (vb40), pour ne rien perdre.
+    var raw = localStorage.getItem('vb41') || localStorage.getItem('vb40');
     if (!raw) return;
     var d = JSON.parse(raw);
+    var r40 = localStorage.getItem('vb40');
+    if (localStorage.getItem('vb41') && r40 && !localStorage.getItem('vb41_fusion')) {
+      try {
+        var d40 = JSON.parse(r40), nLog = function(t){ var n = 0; (t.matches||[]).forEach(function(m){ Object.keys(m.sets||{}).forEach(function(k){ n += ((m.sets[k]||{}).log||[]).length; }); }); return n; };
+        (d40.tournaments || []).forEach(function(t40){
+          var i = d.tournaments.map(function(x){ return x.id; }).indexOf(t40.id);
+          if (i < 0) d.tournaments.push(t40);                              // tournoi seulement dans la 4.0
+          else if (nLog(t40) > nLog(d.tournaments[i])) d.tournaments[i] = t40;   // plus complet dans la 4.0
+        });
+        localStorage.setItem('vb41', JSON.stringify(d));
+      } catch(e2) {}
+      try { localStorage.setItem('vb41_fusion', '1'); } catch(e3) {}
+    }
     if (d && d.tournaments && d.tournaments.length) {
       DB = d;
       // Intégrité de base
@@ -773,7 +872,7 @@ function load() {
         t.matches.forEach(function(m){
           if (!m.absent) m.absent = {};
           if (m.notes === undefined) m.notes = '';
-          [1,2,3].forEach(function(i){
+          SETS(m).forEach(function(i){
             var s = m.sets[i];
             if (!s) return;
             if (!s.roles) {
@@ -841,7 +940,7 @@ function snap() {
   // nous/adv inclus : un Ajouter PTS/SRV/ERR touche aussi le score (voir plus bas),
   // donc Annuler doit pouvoir remettre le score comme il était, pas juste la stat.
   if (!s.log) s.log = [];
-  s.hist.push(JSON.stringify({stats:s.stats, nous:s.nous, adv:s.adv, logLen:s.log.length, confirmed:!!s.confirmed, lineup:s.lineup||null, serve:s.serve||null, libero:(s.libero===undefined?'__u':s.libero), liberoOut:!!s.liberoOut, liberoFor:s.liberoFor||null}));
+  s.hist.push(JSON.stringify({stats:s.stats, nous:s.nous, adv:s.adv, logLen:s.log.length, confirmed:!!s.confirmed, lineup:s.lineup||null, serve:s.serve||null, libero:(s.libero===undefined?'__u':s.libero), liberoOut:!!s.liberoOut, liberoFor:s.liberoFor||null, srvTurn:s.srvTurn||null}));
   if (s.hist.length > 40) s.hist.shift();
 }
 
@@ -872,10 +971,12 @@ function renderScore() {
 }
 
 function renderSet() {
-  var m = M();
-  [1,2,3].forEach(function(i){
-    document.getElementById('s'+i).className = 'set-btn' + (m.curSet===i ? ' on' : '');
-  });
+  var m = M(), v = visibleSets(m), row = document.getElementById('setsRow');
+  var h = v.length >= 4 ? '' : '<span class="set-lbl">Set</span>';
+  v.forEach(function(i){ h += '<button class="set-btn' + (m.curSet===i ? ' on' : '') + '" data-set="'+i+'">'+i+'</button>'; });
+  h += '<button class="set-btn plus' + (m.ended ? ' ended' : '') + '" id="setPlus">' + (m.ended ? '✓' : '+') + '</button>';
+  row.innerHTML = h;
+  row.classList.toggle('many', v.length >= 5);
 }
 
 // ═══════════════════════════════════════════
@@ -953,6 +1054,13 @@ function liberoSlot(s) {
 }
 function setHasRallies(s) { return (s.log || []).some(function(ev){ return ev.e === 'st' || ev.e === 'p' || ev.e === 'svt'; }); }
 function lineupChanged(s) { if (!setHasRallies(s)) s.lineupStart = s.lineup.slice(); }
+// Les 6 joueuses sur le terrain, positions 1 à 6 (la libero à la place de la centrale)
+function onCourt(s) { var v = s.lineup.slice(), i = liberoSlot(s); if (i >= 0) v[i] = s.libero; return v; }
+// Rotation R1 à R6 = position de la passeuse
+function rotationNo(s) {
+  for (var i = 0; i < 6; i++) if (s.lineup[i] && roleOf(s, s.lineup[i]) === 'P') return i + 1;
+  return '';
+}
 function rotateTo(s, n) {
   var i = s.lineup.indexOf(n);
   if (i > 0) s.lineup = s.lineup.slice(i).concat(s.lineup.slice(0, i));
@@ -993,11 +1101,12 @@ function rallyEnd(side, server) {
     var who = s.lineup[0];
     if (s.stats[who]) {
       s.stats[who].svt++;
-      var b = document.getElementById('c-'+safeId(who)+'-svt'); if (b) b.textContent = s.stats[who].svt;
     }
     // le service est noté juste avant l'événement qui a fermé l'échange
     s.log.splice(s.log.length - 1, 0, {e:'svt', n:who, auto:true, ts:Date.now()});
   }
+  var ce = s.log[s.log.length - 1];                  // 4.1 : qui était sur le terrain pendant cet échange
+  if (ce) { ce.on = onCourt(s); ce.rot = rotationNo(s); var li = liberoSlot(s); ce.libFor = li >= 0 ? s.lineup[li] : ''; }
   if (side === 'N' && s.serve === 'A') {             // side-out : rotation automatique
     s.lineup = s.lineup.slice(1).concat(s.lineup.slice(0, 1));
   }
@@ -1034,12 +1143,30 @@ function statBtns(n, role, d, canServe) {
   if (role === 'P') b += '<button class="pbtn ast has-tag" data-n="'+n+'" data-t="ast"><span class="pbtn-tag">Ast</span><span id="c-'+sid+'-ast">'+d.ast+'</span></button>';
   return b;
 }
+// 4.1 : contacts de la libero = R+ + neutres (appui sur le chiffre) + R− + Err
+function liberoContacts(d) { return (d.rp||0) + (d.def||0) + (d.rm||0) + (d.err||0); }
+// 4.1 : tour de service en cours. base = services de la serveuse avant ce tour.
+function serveTurn(s) {
+  if (s.serve === 'N' && s.lineup && s.lineup[0] && s.stats[s.lineup[0]]) {
+    var n = s.lineup[0], svt = s.stats[n].svt || 0;
+    if (!s.srvTurn || s.srvTurn.n !== n) s.srvTurn = {n:n, base:svt};
+    if (s.srvTurn.base > svt) s.srvTurn.base = svt;
+    return s.srvTurn;
+  }
+  s.srvTurn = null; return null;
+}
 function nameDiv(n, role, d) {
   var sid = safeId(n);
-  var badgeKey = (role === 'L') ? 'def' : 'svt';
   var tag = (role === 'P' || role === 'L' || role === 'C') ? '<span class="role-tag '+role+'">'+role+'</span>' : '';
-  return '<div class="pname" data-n="'+n+'" data-t="svt" data-drag="'+n+'">'+n+tag+
-    '<span class="svt-badge" id="c-'+sid+'-'+badgeKey+'">'+d[badgeKey]+'</span></div>';
+  var badge;
+  if (role === 'L') badge = '<span class="svt-badge" id="c-'+sid+'-badge">'+liberoContacts(d)+'</span>';
+  else {
+    var st = serveTurn(S());
+    if (st && st.n === n) badge = '<span class="svt-badge" id="c-'+sid+'-badge">'+st.base+'</span>'+
+                                  '<span class="svt-badge red">'+((d.svt||0) - st.base + 1)+'</span>';
+    else badge = '<span class="svt-badge" id="c-'+sid+'-badge">'+(d.svt||0)+'</span>';
+  }
+  return '<div class="pname" data-n="'+n+'" data-t="svt" data-drag="'+n+'">'+n+tag+badge+'</div>';
 }
 
 function renderPlayers() {
@@ -1075,11 +1202,131 @@ function renderPlayers() {
   chips.forEach(function(c){
     html += '<span class="chip" data-bench="'+c.n+'" data-drag="'+c.n+'">'+c.n+(c.note ? ' <i>('+c.note+')</i>' : '')+'</span>';
   });
-  html += '</span><span class="rot-btns"><button class="rot-btn back" onclick="rotateTeam(-1)" title="Reculer d\'une rotation">↺</button>'+
+  html += '</span><span class="rot-btns"><button class="rot-btn order" onclick="openOrder()">Ordre</button><button class="rot-btn back" onclick="rotateTeam(-1)" title="Reculer d\'une rotation">↺</button>'+
           '<button class="rot-btn" onclick="rotateTeam(1)" title="Rotation">↻</button></span>';
   html += '</div>';
   el.innerHTML = html;
 }
+// ═══ 4.1 : ORDRE DE DÉPART ═══
+// On touche les 6 joueuses dans l'ordre de la feuille de match. Si le set est déjà
+// commencé, on refait tout le set avec le bon ordre : serveuses, services, rotations.
+var _order = [];
+function orderCandidates() { var s = S(), m = M(); return activeNames(s, m).filter(function(n){ return roleOf(s, n) !== 'L'; }); }
+function openOrder() {
+  var s = S(), m = M(); ensureLineup(s, m);
+  _order = [];
+  document.getElementById('orderTitle').textContent = 'Ordre de départ · Set ' + m.curSet;
+  var nr = buildRallies(s).length;
+  document.getElementById('orderWarn').textContent = setHasRallies(s) ? 'Set commencé : les ' + nr + ' échanges déjà joués seront recalculés avec ce nouvel ordre.' : '';
+  document.getElementById('orderLast').style.display = lastMatchStart() ? '' : 'none';
+  renderOrder();
+  document.getElementById('orderOverlay').classList.add('show');
+}
+function lastMatchStart() {
+  var t = T(), m = M(), i = t.matches.indexOf(m);
+  for (var k = i - 1; k >= 0; k--) { var x = t.matches[k].sets[1]; if (x && x.lineupStart && setHasRallies(x)) return x.lineupStart.slice(); }
+  return null;
+}
+function renderOrder() {
+  var h = '';
+  // disposé comme sur le terrain : 4 3 2 en avant, 5 6 1 en arrière (le 1 en bas à droite)
+  [3,2,1,4,5,0].forEach(function(i){ h += '<div class="' + (i === _order.length ? 'next' : '') + '"><small>' + (i+1) + (i === 0 ? ' · service' : '') + '</small>' + (_order[i] || '') + '</div>'; });
+  document.getElementById('orderSlots').innerHTML = h;
+  document.getElementById('orderNames').innerHTML = orderCandidates().map(function(n){
+    return '<button class="' + (_order.indexOf(n) >= 0 ? 'used' : '') + '" data-o="' + n + '">' + n + '</button>'; }).join('');
+  document.getElementById('orderOk').disabled = _order.length !== 6;
+  document.getElementById('orderOk').style.opacity = _order.length === 6 ? 1 : .4;
+}
+document.getElementById('orderNames').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  var n = b.getAttribute('data-o'), i = _order.indexOf(n);
+  if (i >= 0) _order = _order.slice(0, i);          // retoucher un nom : on reprend à partir de lui
+  else if (_order.length < 6) _order.push(n);
+  renderOrder();
+});
+document.getElementById('orderClear').onclick = function(){ _order = []; renderOrder(); };
+document.getElementById('orderBase').onclick = function(){
+  var c = orderCandidates(); _order = BASE_LINEUP.filter(function(n){ return c.indexOf(n) >= 0; }); renderOrder();
+};
+document.getElementById('orderLast').onclick = function(){
+  var c = orderCandidates(), l = lastMatchStart() || []; _order = l.filter(function(n){ return n && c.indexOf(n) >= 0; }).slice(0, 6); renderOrder();
+};
+document.getElementById('orderCancel').onclick = function(){ document.getElementById('orderOverlay').classList.remove('show'); };
+document.getElementById('orderOk').onclick = function(){
+  if (_order.length !== 6) return;
+  applyOrder(S(), _order.slice());
+  document.getElementById('orderOverlay').classList.remove('show');
+  renderPlayers(); renderServe(); renderScore(); save();
+};
+function applyOrder(s, start) {
+  snap();                                             // Annuler remet tout comme avant (journal compris)
+  var h = JSON.parse(s.hist.pop()); h.logFull = JSON.parse(JSON.stringify(s.log || [])); s.hist.push(JSON.stringify(h));
+  if (!setHasRallies(s)) {
+    s.lineup = start.slice(); s.lineupStart = start.slice();
+    s.log = (s.log || []).filter(function(ev){ return !(ev.e === 'sv' && ev.auto); });
+    if (s.log.every(function(ev){ return ev.e !== 'sv'; })) s.serve = null;   // l'appli redéduit le service (libero en 1)
+    s.srvTurn = null;
+    ensureLineup(s, M());
+    toast('Ordre de départ enregistré');
+    return;
+  }
+  var n = recomputeSet(s, start);
+  toast('Ordre corrigé · ' + n + ' échanges recalculés');
+}
+function isClosing(ev) { return (ev.e === 'st' && ev.sc) || ev.e === 'p'; }
+function rotK(a, k) { k = ((k % 6) + 6) % 6; return a.slice(k).concat(a.slice(0, k)); }
+function rotOf(a, b) {          // b est-il a tourné de k positions ? (k ou -1)
+  for (var k = 0; k < 6; k++) { var r = rotK(a, k), ok = true; for (var i = 0; i < 6; i++) if (r[i] !== b[i]) { ok = false; break; } if (ok) return k; }
+  return -1;
+}
+function recomputeSet(s, start) {
+  var log = s.log || [], out = [], oldCur = (s.lineupStart || s.lineup || []).slice(), cur = start.slice();
+  // qui servait au premier échange : dernier choix NOUS/EUX avant lui, sinon ce que l'appli avait déduit
+  var serve = null;
+  for (var i = 0; i < log.length; i++) {
+    if (isClosing(log[i])) { if (!serve) serve = (i > 0 && log[i-1].e === 'svt') ? 'N' : 'A'; break; }
+    if (log[i].e === 'sv') serve = log[i].side;
+  }
+  var saveL = s.lineup, saveS = s.serve, nb = 0;
+  log.forEach(function(ev){
+    if (ev.e === 'svt' && ev.auto) return;                    // refait plus bas
+    if (ev.e === 'sv') { serve = ev.side; out.push(ev); return; }
+    if (ev.e === 'lu' && ev.lu) {                              // changement fait à la main : on le refait sur le bon ordre
+      var after = ev.lu, k = rotOf(oldCur, after);
+      if (k >= 0) cur = rotK(cur, k);
+      else { var sub = {}; for (var j = 0; j < 6; j++) if (oldCur[j] !== after[j]) sub[oldCur[j]] = after[j];
+             cur = cur.map(function(x){ return (x in sub) ? sub[x] : x; }); }
+      oldCur = after.slice(); ev.lu = cur.slice(); out.push(ev); return;
+    }
+    if (isClosing(ev)) {
+      // ancien alignement au moment de l'échange (rattrape les corrections de serveuse)
+      if (ev.on) { var oo = ev.on.map(function(x){ return (x && x === s.libero && ev.libFor) ? ev.libFor : x; });
+                   var k2 = rotOf(oldCur, oo); if (k2 > 0) { cur = rotK(cur, k2); oldCur = oo; } }
+      // le service raté ou l'As appartient à la vraie serveuse
+      if (ev.e === 'st' && (ev.t === 'srv' || ev.t === 'as') && serve === 'N' && cur[0] && ev.n !== cur[0] && s.stats[cur[0]]) {
+        var o = s.stats[ev.n], nw = s.stats[cur[0]];
+        if (o) { o[ev.t] = Math.max(0, (o[ev.t]||0) - 1); if (ev.t === 'as') o.pts = Math.max(0, (o.pts||0) - 1); }
+        nw[ev.t] = (nw[ev.t]||0) + 1; if (ev.t === 'as') nw.pts = (nw.pts||0) + 1;
+        ev.n = cur[0];
+      }
+      if (serve === 'N' && cur[0]) out.push({e:'svt', n:cur[0], auto:true, ts:ev.ts || Date.now()});
+      s.lineup = cur; s.serve = serve;
+      ev.on = onCourt(s); ev.rot = rotationNo(s); var li = liberoSlot(s); ev.libFor = li >= 0 ? s.lineup[li] : '';
+      var side = ev.e === 'p' ? ev.side : ev.sc;
+      if (side === 'N' && serve === 'A') { cur = rotK(cur, 1); oldCur = rotK(oldCur, 1); }
+      serve = side; nb++;
+      out.push(ev); return;
+    }
+    out.push(ev);
+  });
+  s.log = out;
+  // services comptés : recomptés à partir du journal refait
+  Object.keys(s.stats).forEach(function(n){ s.stats[n].svt = 0; });
+  out.forEach(function(ev){ if (ev.e === 'svt' && s.stats[ev.n]) s.stats[ev.n].svt++; });
+  s.lineup = cur; s.serve = serve; s.lineupStart = start.slice(); s.srvTurn = null;
+  return nb;
+}
+
 // Bouton Rotation : tout le monde avance d'une position (2 → 1, 1 → 6). ↺ recule d'une position.
 // Rien n'est compté; le service ne change pas.
 function rotateTeam(dir) {
@@ -1317,8 +1564,9 @@ document.getElementById('srvEux').onclick  = function(){ setServe('A'); };
 var CODE = {pts:'Pt', as:'As', err:'Err', srv:'SvR'};
 function buildRallies(s) {
   var R = [], tap = null, pend = null, curServer = null, prevTurnServer = null, forced = null;
+  var lc = {rp:0, def:0, rm:0};   // 4.1 : contacts de la libero pendant l'échange
   function lastW() { return R.length ? R[R.length-1].w : null; }
-  function close(w, n, c, unk) {
+  function close(w, n, c, unk, ev) {
     var ourEv = !!tap || ((c === 'SvR' || c === 'As') && n);
     var team = forced || (lastW() === null ? (ourEv ? 'N' : 'A') : lastW());
     var wasForced = !!forced; forced = null;
@@ -1335,20 +1583,22 @@ function buildRallies(s) {
       if (who) { if (newTurn && prevTurnServer && who === prevTurnServer && !flag) flag = '!'; srv = who; curServer = who; }
       else srv = '?';   // la serveuse est appuyée à chaque service : pas d'appui = oubli
     }
-    R.push({w:w, n:n||'', c:c, team:team, srv:srv, flag:flag, unk:!!unk});
+    R.push({w:w, n:n||'', c:c, team:team, srv:srv, flag:flag, unk:!!unk, on:(ev && ev.on) || null, rot:(ev && ev.rot) || '', libFor:(ev && ev.libFor) || '', lc:lc});
+    lc = {rp:0, def:0, rm:0};
     tap = null; pend = null;
   }
   (s.log || []).forEach(function(ev){
     if (ev.e === 'svt') tap = ev.n;
     else if (ev.e === 'sv') forced = ev.side;
+    else if (ev.e === 'st' && (ev.t === 'rp' || ev.t === 'rm' || ev.t === 'def')) lc[ev.t]++;
     else if (ev.e === 'st' && CODE[ev.t]) {
       var side = (ev.t === 'pts' || ev.t === 'as') ? 'N' : 'A';
-      if (ev.sc) close(ev.sc, ev.n, CODE[ev.t]);
+      if (ev.sc) close(ev.sc, ev.n, CODE[ev.t], false, ev);
       else pend = {n:ev.n, c:CODE[ev.t], side:side};
     }
     else if (ev.e === 'p') {
-      if (pend && pend.side === ev.side) close(ev.side, pend.n, pend.c);
-      else close(ev.side, '', ev.side === 'N' ? 'EA' : 'PA');
+      if (pend && pend.side === ev.side) close(ev.side, pend.n, pend.c, false, ev);
+      else close(ev.side, '', ev.side === 'N' ? 'EA' : 'PA', false, ev);
     }
     else if (ev.e === 'c') {
       if (ev.d > 0) close(ev.side, '', '?', true);
@@ -1418,11 +1668,12 @@ document.getElementById('curveClose').onclick = function(){ document.getElementB
 // Avertit si le score ne ressemble pas à une fin de set normale (25, ou 15 au set 3, avec 2 d'écart).
 // C'est seulement un avertissement : un set à 21 reste possible, on peut confirmer quand même.
 function scoreWarning(n, a, setNo) {
-  var cible = (setNo === 3) ? 15 : 25, hi = Math.max(n, a), lo = Math.min(n, a);
-  if (hi < cible) return 'Aucune équipe n\'a ' + cible + ' points. Vérifie le score.';
+  // 4.1 : sans savoir si le set se jouait à 15 ou à 25 : il faut que quelqu'un ait 15 ou 25
+  // avec 2 points d'écart, ou plus que 15 avec exactement 2 points d'écart (prolongation)
+  var hi = Math.max(n, a), lo = Math.min(n, a);
   if (hi - lo < 2) return 'Moins de 2 points d\'écart. Vérifie le score.';
-  if (hi > cible && hi - lo > 2) return 'Au-delà de ' + cible + ', l\'écart devrait être de 2. Vérifie le score.';
-  return '';
+  if (hi === 15 || hi === 25 || (hi > 15 && hi - lo === 2)) return '';
+  return 'Personne n\'a 15 ou 25 points. Vérifie le score.';
 }
 var _finalNext = null;
 function askFinal(nextFn) {
@@ -1481,9 +1732,55 @@ function switchSet(i) {
   if (!s.confirmed && (s.nous || s.adv)) askFinal(go);   // on quitte un set : on confirme son score
   else go();
 }
-document.getElementById('s1').onclick = function() { switchSet(1); };
-document.getElementById('s2').onclick = function() { switchSet(2); };
-document.getElementById('s3').onclick = function() { switchSet(3); };
+document.getElementById('setsRow').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.id === 'setPlus') { openPlus(); return; }
+  switchSet(parseInt(b.getAttribute('data-set'), 10));
+});
+// « + » : nouveau set ou fin du match
+// set qui suit : le prochain set vide après celui en cours, sinon un nouveau à la fin
+function nextSetNo(m) {
+  var nx = m.sets[m.curSet + 1];
+  if (nx && !nx.nous && !nx.adv && !setHasRallies(nx)) return m.curSet + 1;
+  var v = visibleSets(m); return Math.max(v[v.length - 1], m.curSet) + 1;
+}
+function openPlus() {
+  var m = M(), nx = nextSetNo(m);
+  document.getElementById('plusTitle').textContent = m.ended ? 'Match terminé' : 'Set ' + m.curSet;
+  document.getElementById('plusNew').textContent = 'Nouveau set (' + nx + ')';
+  document.getElementById('plusEnd').style.display = m.ended ? 'none' : '';
+  document.getElementById('plusOverlay').classList.add('show');
+}
+function closePlus() { document.getElementById('plusOverlay').classList.remove('show'); }
+function confirmThen(fn) {      // confirme le score du set en cours (s'il y a des points) avant de continuer
+  var s = S();
+  if (!s.confirmed && (s.nous || s.adv)) askFinal(fn); else fn();
+}
+document.getElementById('plusCancel').onclick = closePlus;
+document.getElementById('plusNew').onclick = function(){
+  closePlus();
+  confirmThen(function(){
+    var m = M(), k = nextSetNo(m), prev = m.sets[m.curSet];
+    if (!m.sets[k]) m.sets[k] = freshSet(m.names, prev.roles);
+    m.sets[k].added = true;
+    m.names.forEach(function(n){ if (prev.absent && prev.absent[n]) m.sets[k].absent[n] = true; });
+    m.ended = false; m.curSet = k;
+    renderAll(); save(); toast('Set ' + k);
+  });
+};
+document.getElementById('plusEnd').onclick = function(){
+  closePlus();
+  confirmThen(function(){
+    var m = M(); m.ended = true;
+    var r = matchResult(m), txt = {V:'Victoire', D:'Défaite', E:'Égalité', NP:'Non joué'}[r];
+    renderAll(); save(); toast('Match terminé · ' + txt + ' ' + matchSetScoreLine(m));
+  });
+};
+function matchSetScoreLine(m) {
+  var w = 0, l = 0;
+  SETS(m).forEach(function(i){ var x = m.sets[i], N = scoreOf(x,'N'), A = scoreOf(x,'A'); if (N > A) w++; else if (A > N) l++; });
+  return w + '-' + l;
+}
 
 // Appui long sur SRV = As au service (pas de bouton de plus : on réutilise SRV,
 // l'appui court reste "service manqué" comme avant). Un petit point jaune sur le
@@ -1555,6 +1852,7 @@ document.getElementById('players').addEventListener('click', function(e) {
     if (sc) { addScore(s, sc, 1); renderScore(); }
   }
   logEv({e:'st', n:n, t:t, sc:sc});
+  if ((s.roles[n] || 'A') === 'L') { var bd = document.getElementById('c-'+safeId(n)+'-badge'); if (bd) bd.textContent = liberoContacts(s.stats[n]); }
   if (sc) rallyEnd(sc, t === 'srv' ? n : null);
   save();
 });
@@ -1581,9 +1879,10 @@ document.getElementById('btnUndo').onclick = function() {
   s.stats = prev.stats;
   if (prev.nous !== undefined) s.nous = prev.nous;
   if (prev.adv  !== undefined) s.adv  = prev.adv;
-  if (prev.logLen !== undefined && s.log) s.log.length = prev.logLen;
+  if (prev.logFull) s.log = prev.logFull;
+  else if (prev.logLen !== undefined && s.log) s.log.length = prev.logLen;
   if (prev.confirmed !== undefined) s.confirmed = prev.confirmed;
-  if (prev.lineup !== undefined) { s.lineup = prev.lineup; s.serve = prev.serve; if (prev.libero === '__u') delete s.libero; else s.libero = prev.libero; s.liberoOut = !!prev.liberoOut; s.liberoFor = prev.liberoFor; renderPlayers(); renderServe(); }
+  if (prev.lineup !== undefined) { s.lineup = prev.lineup; s.serve = prev.serve; if (prev.libero === '__u') delete s.libero; else s.libero = prev.libero; s.liberoOut = !!prev.liberoOut; s.liberoFor = prev.liberoFor; s.srvTurn = prev.srvTurn || null; renderPlayers(); renderServe(); }
   activeNames().forEach(function(n) {
     var sid = safeId(n);
     var st = s.stats[n] || freshStats();
@@ -1602,11 +1901,9 @@ document.getElementById('btnReset').onclick = function() {
     var m = M();
     m.sets = {
       1: freshSet(m.names, m.sets[1].roles),
-
-      2: freshSet(m.names, m.sets[2].roles),
-      3: freshSet(m.names, m.sets[3].roles)
+      2: freshSet(m.names, m.sets[2].roles)
     };
-    m.curSet = 1;
+    m.curSet = 1; m.ended = false;
     renderAll(); save(); toast('Match réinitialisé');
   });
 };
@@ -1695,10 +1992,10 @@ document.getElementById('playersList').addEventListener('click', function(e) {
     var next = cur === 'A' ? 'P' : (cur === 'P' ? 'L' : (cur === 'L' ? 'C' : 'A'));
     s.roles[n] = next;
     // le rôle suit aussi dans les sets suivants qui n'ont pas commencé
-    for (var si = m.curSet + 1; si <= 3; si++) {
+    SETS(m).filter(function(x){ return x > m.curSet; }).forEach(function(si){
       var ns = m.sets[si];
       if (ns && !setHasRallies(ns)) { ns.roles[n] = next; ns.liberoFor = null; }
-    }
+    });
     if (next === 'L') {
       if (!s.startPos) s.startPos = {};
       s.startPos[n] = 7;
@@ -1718,7 +2015,7 @@ document.getElementById('playersList').addEventListener('click', function(e) {
         // Retirer aussi du match courant
         m.names = m.names.filter(function(x){ return x !== name; });
         delete m.absent[name];
-        [1,2,3].forEach(function(i){ delete m.sets[i].absent[name]; });
+        SETS(m).forEach(function(i){ delete m.sets[i].absent[name]; });
         renderPlayersModal();
         renderPlayers();
         save();
@@ -1770,7 +2067,7 @@ document.getElementById('addPlayerBtn').onclick = function() {
   // Ajouter au match courant
   m.names.push(name);
   // Ajouter aux 3 sets
-  [1,2,3].forEach(function(i){
+  SETS(m).forEach(function(i){
     m.sets[i].stats[name] = freshStats();
     m.sets[i].roles[name] = 'A';
     m.sets[i].absent[name] = false;
@@ -1830,7 +2127,7 @@ function matchResult(m) {
   // Retourne 'V' / 'D' / 'E' / 'NP' (non joué)
 
   var setsW=0, setsL=0, anyPlayed=false;
-  [1,2,3].forEach(function(i){
+  SETS(m).forEach(function(i){
     var s = m.sets[i];
     var sn = s.swapped ? s.adv : s.nous;
     var sa = s.swapped ? s.nous : s.adv;
@@ -1842,12 +2139,17 @@ function matchResult(m) {
   if (!anyPlayed) return 'NP';
   if (setsW > setsL) return 'V';
   if (setsW < setsL) return 'D';
+  // sets égaux : le total des petits points décide (RSEQ)
+  var pf = 0, pa = 0;
+  SETS(m).forEach(function(i){ var x = m.sets[i]; pf += x.swapped ? x.adv : x.nous; pa += x.swapped ? x.nous : x.adv; });
+  if (pf > pa) return 'V';
+  if (pf < pa) return 'D';
   return 'E';
 }
 
 function matchSetScores(m) {
   var arr = [];
-  [1,2,3].forEach(function(i){
+  SETS(m).forEach(function(i){
     var s = m.sets[i];
     var sn = s.swapped ? s.adv : s.nous;
     var sa = s.swapped ? s.nous : s.adv;
@@ -1875,7 +2177,7 @@ function tournamentCumul() {
       if (m.absent[n]) return;
       if (!(n in totals)) { totals[n] = freshStats(); matchesPlayed[n] = 0; }
       matchesPlayed[n]++;
-      [1,2,3].forEach(function(i){
+      SETS(m).forEach(function(i){
         var s = m.sets[i];
         var sn = s.swapped ? s.adv : s.nous;
         var sa = s.swapped ? s.nous : s.adv;
@@ -1917,7 +2219,7 @@ function renderTournamentScreen() {
     if (res === 'NP') return;
     played++;
     if (res === 'V') wins++; else if (res === 'D') losses++; else eq++;
-    [1,2,3].forEach(function(i){
+    SETS(m).forEach(function(i){
       var s = m.sets[i];
       var sn = s.swapped ? s.adv : s.nous;
       var sa = s.swapped ? s.nous : s.adv;
@@ -2031,6 +2333,7 @@ document.getElementById('btnNewMatch').onclick = function() {
       renderTournamentScreen();
       save();
       toast('Nouveau match créé');
+      setTimeout(openOrder, 350);   // ordre de départ du set 1 : Base, Dernier match ou nouveau
     });
   });
 
@@ -2312,7 +2615,7 @@ function buildTournamentPreviewText() {
     txt += m.name + ' · vs ' + (m.adverse||ADV_NONE) + '\n';
     txt += d + ' · ' + resTxt + ' · ' + matchSetScores(m) + '\n';
     txt += '══════════════════════════════\n\n';
-    [1,2,3].forEach(function(si){
+    SETS(m).forEach(function(si){
       var ss = m.sets[si];
       if (!ss.nous && !ss.adv) return;   // set pas joué : on ne l'affiche pas
       txt += buildSetBlock(si, m) + '\n';
@@ -2360,7 +2663,7 @@ function buildTournamentText() {
     var res = matchResult(m); if (res==='NP') return;
     played++;
     if (res==='V') w++; else if (res==='D') l++; else e++;
-    [1,2,3].forEach(function(i){
+    SETS(m).forEach(function(i){
       var s = m.sets[i];
       var sn = s.swapped ? s.adv : s.nous;
       var sa = s.swapped ? s.nous : s.adv;
@@ -2379,7 +2682,7 @@ function buildTournamentText() {
     out += matchSetScores(m) + '\n';
     out += '══════════════════════════════\n\n';
     // Sets de ce match
-    [1,2,3].forEach(function(si){
+    SETS(m).forEach(function(si){
       var s = m.sets[si];
       var scoreNous = s.swapped ? s.adv : s.nous;
       var scoreAdv  = s.swapped ? s.nous : s.adv;
@@ -2429,17 +2732,20 @@ function buildTournamentText() {
 
 // CSV du tournoi complet
 // 3.9 : lignes du fil des échanges (une ligne par échange)
-var JOURNAL_HEAD = ['Tournoi','Match','Adversaire','Set','No','Gagnant','Score Nous','Score Adv','Service','Serveuse','Joueuse','Action','Note'];
+var JOURNAL_HEAD = ['Tournoi','Match','Adversaire','Set','No','Gagnant','Score Nous','Score Adv','Service','Serveuse','Joueuse','Action','Note','Rotation','P1','P2','P3','P4','P5','P6','Libero en jeu','Libero remplace','Lib R+','Lib neutre','Lib R-'];
 function journalRows(t) {
   var rows = [];
   t.matches.forEach(function(m){
-    [1,2,3].forEach(function(si){
+    SETS(m).forEach(function(si){
       var s = m.sets[si];
       if (!s.log || !s.log.length) return;
       buildRallies(s).forEach(function(r, k){
         rows.push([t.name, m.name, m.adverse||ADV_NONE, si, k+1, r.w==='N'?'Nous':'Adv', r.sn, r.sa,
           r.team==='N'?'Nous':(r.team==='A'?'Adv':'?'), r.srv||'', r.n, r.c,
-          r.unk ? 'ajouté par correction' : (r.flag==='m' ? 'échange manquant?' : (r.srv==='?' ? 'serveuse non appuyée' : (r.flag==='!' ? 'même serveuse que le tour précédent' : '')))]);
+          r.unk ? 'ajouté par correction' : (r.flag==='m' ? 'échange manquant?' : (r.srv==='?' ? 'serveuse non appuyée' : (r.flag==='!' ? 'même serveuse que le tour précédent' : ''))),
+          r.rot ? 'R' + r.rot : ''].concat(r.on ? r.on.map(function(x){ return x || ''; }) : ['','','','','',''])
+          .concat([r.on ? (r.on.filter(function(x){ return x && (s.roles[x] || 'A') === 'L'; })[0] || '') : '', r.libFor || '',
+                   r.lc.rp, r.lc.def, r.lc.rm]));
       });
     });
   });
@@ -2458,9 +2764,9 @@ function csvText(rows) {
 
 // CSV de tous les tournois : détail par set + fil des échanges, pour chaque tournoi
 function buildAllCSV() {
-  var rows = [['VBall 4.0 - Tous les tournois'], ['Exporté le', new Date().toLocaleDateString('fr-FR')], []];
+  var rows = [['VBall 4.1 - Tous les tournois'], ['Exporté le', new Date().toLocaleDateString('fr-FR')], []];
   rows.push(['DÉTAIL PAR SET']);
-  rows.push(['Tournoi','Match','Adversaire','Set','Score Nous','Score Adv','Joueuse','Role','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot','Def']);
+  rows.push(['Tournoi','Match','Adversaire','Set','Score Nous','Score Adv','Joueuse','Role','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot','Neutre','Contacts']);
   DB.tournaments.forEach(function(t){ detailRows(t).forEach(function(r){ rows.push(r); }); });
   rows.push([]);
   rows.push(['FIL DES ÉCHANGES']);
@@ -2472,7 +2778,7 @@ function buildAllCSV() {
 function detailRows(t) {
   var out = [];
   t.matches.forEach(function(m){
-    [1,2,3].forEach(function(si){
+    SETS(m).forEach(function(si){
       var s = m.sets[si];
       var sn = s.swapped ? s.adv : s.nous;
       var sa = s.swapped ? s.nous : s.adv;
@@ -2482,7 +2788,7 @@ function detailRows(t) {
         var st = s.stats[n]; if (!st) return;
         out.push([t.name, m.name, m.adverse||ADV_NONE, si, sn, sa, n, s.roles[n]||'A',
           st.srv||0, st.svt||0, st.as||0, st.err||0, (st.pts||0)-(st.as||0), st.ast||0, st.rp||0, st.rm||0,
-          (st.srv||0)+(st.err||0), st.def||0]);
+          (st.srv||0)+(st.err||0), st.def||0, (s.roles[n]||'A') === 'L' ? liberoContacts(st) : '']);
       });
     });
   });
@@ -2492,7 +2798,7 @@ function detailRows(t) {
 function buildTournamentCSV() {
   var t = T();
   var rows = [];
-  rows.push(['VBall 4.0 - Tournoi', t.name]);
+  rows.push(['VBall 4.1 - Tournoi', t.name]);
   rows.push(['Exporté le', new Date().toLocaleDateString('fr-FR')]);
   rows.push([]);
 
@@ -2502,7 +2808,7 @@ function buildTournamentCSV() {
     var res = matchResult(m); if (res==='NP') return;
     played++;
     if (res==='V') w++; else if (res==='D') l++; else e++;
-    [1,2,3].forEach(function(i){
+    SETS(m).forEach(function(i){
       var s = m.sets[i];
       var sn = s.swapped ? s.adv : s.nous;
       var sa = s.swapped ? s.nous : s.adv;
@@ -2515,13 +2821,13 @@ function buildTournamentCSV() {
 
   // Détail par set de chaque match
   rows.push(['DÉTAIL PAR SET']);
-  rows.push(['Tournoi','Match','Adversaire','Set','Score Nous','Score Adv','Joueuse','Role','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot','Def']);
+  rows.push(['Tournoi','Match','Adversaire','Set','Score Nous','Score Adv','Joueuse','Role','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot','Neutre','Contacts']);
   detailRows(t).forEach(function(r){ rows.push(r); });
   rows.push([]);
 
   // Cumul par joueuse
   rows.push(['CUMUL DU TOURNOI']);
-  rows.push(['Joueuse','Matchs joués','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot','Eff%','Pts/Match','Def']);
+  rows.push(['Joueuse','Matchs joués','Srv','Svt','As','Err','Pts','Ast','R+','R-','ErrTot','Eff%','Pts/Match','Neutre','Contacts']);
   var c = tournamentCumul();
   var sorted = t.names.slice().sort(function(x,y){
     return (c.totals[y]?c.totals[y].pts:0) - (c.totals[x]?c.totals[x].pts:0);
@@ -2536,7 +2842,7 @@ function buildTournamentCSV() {
     var eft = (st.pts + st.err + st.srv) ? Math.round(st.pts/(st.pts+st.err+st.srv)*100) : ''; // basé sur pts brut (As inclus) = pointage final ; srv = service manqué compte comme erreur
     rows.push([n, mj, st.srv, st.svt, st.as, st.err, st.pts-st.as, st.ast, st.rp, st.rm, st.srv+st.err,
                eft !== '' ? eft + '%' : '',
-               mj ? (st.pts/mj).toFixed(2) : '', st.def||0]); // Pts/Match basé sur le pointage final (brut)
+               mj ? (st.pts/mj).toFixed(2) : '', st.def||0, (st.rp||st.rm||st.def) ? liberoContacts(st) : '']); // Pts/Match basé sur le pointage final (brut)
   });
 
   // Notes par match
@@ -2728,6 +3034,206 @@ document.getElementById('btnImportJson').onclick = function() {
 
 load();
 renderAll();
+
+
+// ═══════════════════════════════════════════
+// 4.1 : DIFFUSION EN DIRECT (parents)
+// Quand c'est activé, chaque sauvegarde envoie un petit résumé (score, dernier point,
+// sets) dans une base Firebase. Les parents le voient sur la page ../../direct/?c=CODE.
+// Les stats détaillées restent dans le téléphone : seul ce résumé part sur Internet.
+// ═══════════════════════════════════════════
+var LIVE_CFG = { apiKey: 'AIzaSyA4cxt8mpq99DbF8DA4iRu5-GpCMIckhsc', databaseURL: 'https://vball-direct-default-rtdb.firebaseio.com' };   // à remplir avec la config Firebase
+var LIVE_TEAM = 'Polypus';
+var LIVE_VIEW = 'https://polypussorel.github.io/vball/direct/';
+
+var live = (function(){
+  var st = { on:false, code:'' };
+  try { var r = JSON.parse(localStorage.getItem('vbLive') || '{}'); st.on = !!r.on; st.code = r.code || ''; } catch(e){}
+  if (!st.code) {
+    var abc = 'abcdefghjkmnpqrstuvwxyz23456789', c = '';
+    for (var i = 0; i < 10; i++) c += abc[Math.floor(Math.random() * abc.length)];
+    st.code = c;
+  }
+  var auth = null; try { auth = JSON.parse(localStorage.getItem('vbLiveAuth') || 'null'); } catch(e){}
+  var lastSent = '', pending = null, busy = false, timer = null, status = 'off';
+  function keep() { try { localStorage.setItem('vbLive', JSON.stringify(st)); } catch(e){} }
+  function keepAuth() { try { localStorage.setItem('vbLiveAuth', JSON.stringify(auth)); } catch(e){} }
+  keep();
+  function ready() { return !!(LIVE_CFG.apiKey && LIVE_CFG.databaseURL); }
+  function link() { return LIVE_VIEW + '?c=' + st.code; }
+
+  function setStatus(x) {
+    status = x;
+    var el = document.getElementById('liveDot');
+    if (el) {
+      el.style.display = st.on ? 'inline-block' : 'none';
+      el.className = 'live-dot ' + x;
+    }
+    var t = document.getElementById('liveStatus');
+    if (t) t.textContent = !ready() ? 'Pas encore configurée.' :
+      !st.on ? 'Arrêtée.' : x === 'ok' ? 'En ondes : les parents voient le score.' :
+      x === 'wait' ? 'Envoi en cours…' : 'Pas de réseau : sera envoyé dès que ça revient.';
+  }
+
+  // Connexion anonyme : ce téléphone devient le seul qui peut écrire sur ce lien
+  function token() {
+    var now = Date.now();
+    if (auth && auth.idToken && auth.exp > now + 60000) return Promise.resolve(auth.idToken);
+    var req = (auth && auth.refresh)
+      ? fetch('https://securetoken.googleapis.com/v1/token?key=' + LIVE_CFG.apiKey, {
+          method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+          body:'grant_type=refresh_token&refresh_token=' + encodeURIComponent(auth.refresh) })
+          .then(function(r){ if (!r.ok) throw 0; return r.json(); })
+          .then(function(j){ return { uid:j.user_id, refresh:j.refresh_token, idToken:j.id_token, exp:now + (+j.expires_in) * 1000 }; })
+      : fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + LIVE_CFG.apiKey, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:'{"returnSecureToken":true}' })
+          .then(function(r){ if (!r.ok) throw 0; return r.json(); })
+          .then(function(j){ return { uid:j.localId, refresh:j.refreshToken, idToken:j.idToken, exp:now + (+j.expiresIn) * 1000 }; });
+    return req.then(function(a){ auth = a; keepAuth(); return a.idToken; });
+  }
+
+  function label(ev) {
+    if (ev.e === 'st') {
+      if (ev.t === 'as')  return ev.n + ' · As au service';
+      if (ev.t === 'pts') return ev.n + ' · Point';
+      return 'Point adverse';                       // nos erreurs : on ne nomme personne
+    }
+    if (ev.e === 'p') return ev.side === 'N' ? 'Erreur adverse' : 'Point adverse';
+    return 'Correction du score';
+  }
+
+  // Refait le fil du set pour avoir le score après chaque point
+  function rallies(s) {
+    var n = 0, a = 0, out = [];
+    (s.log || []).forEach(function(ev){
+      var side = null, d = 1;
+      if (ev.e === 'st' && ev.sc) side = ev.sc;
+      else if (ev.e === 'p') side = ev.side;
+      else if (ev.e === 'c') { side = ev.side; d = ev.d; }
+      if (!side) return;
+      if (side === 'N') n = Math.max(0, n + d); else a = Math.max(0, a + d);
+      if (ev.e === 'c' && d < 0) {
+        for (var i = out.length - 1; i >= 0; i--) if (out[i].s === side) { out.splice(i, 1); break; }
+        return;
+      }
+      out.push({ s:side, txt:label(ev), sc:n + '-' + a });
+    });
+    return out;
+  }
+
+  function setDone(m, i, isActive) {
+    var s = m.sets[i];
+    if (!s || !(s.nous || s.adv)) return false;
+    return !!s.confirmed || !!m.ended || !isActive || i < m.curSet;
+  }
+
+  function payload() {
+    var t = T(), m = M(), s = S(), w = 0, l = 0;
+    t.matches.forEach(function(mm){
+      SETS(mm).forEach(function(i){
+        if (!setDone(mm, i, mm === m)) return;
+        var x = mm.sets[i], N = scoreOf(x,'N'), A = scoreOf(x,'A');
+        if (N > A) w++; else if (A > N) l++;
+      });
+    });
+    var sets = [];
+    SETS(m).forEach(function(i){
+      var x = m.sets[i];
+      if (!x || (!(x.nous || x.adv) && i !== m.curSet)) return;
+      sets.push({ n:i, nous:scoreOf(x,'N'), eux:scoreOf(x,'A'), fini:setDone(m, i, true) });
+    });
+    var r = rallies(s);
+    // 4.1 : tous les matchs du tournoi (sets gagnés par équipe et scores des sets)
+    var matchs = [];
+    t.matches.forEach(function(mm){
+      var g = 0, pp = 0, sc = [], cur = (mm === m);
+      SETS(mm).forEach(function(i){
+        var x = mm.sets[i];
+        if (!x || !(x.nous || x.adv)) return;
+        var N = scoreOf(x,'N'), A = scoreOf(x,'A'), fini = setDone(mm, i, cur);
+        if (fini) { if (N > A) g++; else if (A > N) pp++; }
+        sc.push({ nous:N, eux:A, fini:fini });
+      });
+      if (!sc.length && !cur) return;
+      matchs.push({ adv:mm.adverse || ADV_NONE, g:g, p:pp, sets:sc, cur:cur });
+    });
+    return {
+      matchs:matchs,
+      v:1, owner:auth ? auth.uid : '', on:true,
+      equipe:LIVE_TEAM, tournoi:t.name || '', match:m.name || '',
+      adv:m.adverse || ADV_NONE, set:m.curSet,
+      nous:scoreOf(s,'N'), eux:scoreOf(s,'A'),
+      sert:s.serve || '', sets:sets, fil:r.slice(-3),
+      tournoiSets:{ g:w, p:l }
+    };
+  }
+
+  function push() {
+    if (!ready() || busy || !pending) return;
+    busy = true; setStatus('wait');
+    var body = pending;
+    token().then(function(tk){
+      var p = JSON.parse(body); p.owner = auth.uid; p.ts = { '.sv':'timestamp' };
+      return fetch(LIVE_CFG.databaseURL.replace(/\/$/, '') + '/live/' + st.code + '.json?auth=' + tk,
+        { method:'PUT', body:JSON.stringify(p) });
+    }).then(function(res){
+      busy = false;
+      if (res.status === 401) { if (auth) auth.exp = 0; throw 0; }
+      if (!res.ok) throw 0;
+      lastSent = body; if (pending === body) pending = null;
+      setStatus('ok');
+      if (pending) push();
+    }).catch(function(){
+      busy = false; setStatus('err');
+      clearTimeout(timer); timer = setTimeout(push, 8000);
+    });
+  }
+
+  function tick(force) {
+    if (!st.on || !ready()) return;
+    var b; try { b = JSON.stringify(payload()); } catch(e) { return; }
+    if (!force && b === lastSent) return;
+    pending = b;
+    clearTimeout(timer); timer = setTimeout(push, 250);
+  }
+
+  function setOn(on) {
+    st.on = on; keep();
+    if (on) { lastSent = ''; tick(true); }
+    else if (ready()) {
+      pending = JSON.stringify({ v:1, owner:'', on:false, equipe:LIVE_TEAM });
+      lastSent = ''; push();
+    }
+    setStatus(on ? 'wait' : 'off');
+  }
+
+  window.addEventListener('online', function(){ if (pending) push(); });
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden && st.on) tick(true); });
+
+  return { tick:tick, setOn:setOn, link:link, isOn:function(){ return st.on; }, ready:ready, refresh:function(){ setStatus(st.on ? status : 'off'); } };
+})();
+
+function openLive() {
+  document.getElementById('liveLink').textContent = live.link();
+  document.getElementById('liveToggle').textContent = live.isOn() ? '⏹ Arrêter la diffusion' : '📡 Démarrer la diffusion';
+  document.getElementById('liveToggle').className = 'mbtn ' + (live.isOn() ? 'warn' : 'copy');
+  live.refresh();
+  document.getElementById('liveOverlay').classList.add('show');
+}
+document.getElementById('btnLive').onclick = function(){ document.getElementById('tournOverlay').classList.remove('show'); openLive(); };
+document.getElementById('liveDot').onclick = openLive;
+document.getElementById('liveClose').onclick = function(){ document.getElementById('liveOverlay').classList.remove('show'); };
+document.getElementById('liveToggle').onclick = function(){
+  if (!live.ready()) { toast('Diffusion pas encore configurée'); return; }
+  live.setOn(!live.isOn()); haptic(); openLive();
+};
+document.getElementById('liveShare').onclick = function(){
+  var u = live.link();
+  if (navigator.share) { navigator.share({ title:'Score en direct · ' + LIVE_TEAM, url:u }).catch(function(){}); return; }
+  try { navigator.clipboard.writeText(u); toast('Lien copié'); } catch(e) { toast(u); }
+};
+live.refresh();
+if (live.isOn()) live.tick(true);
 
 // Mode hors-ligne : enregistre l'appli dans le téléphone pour qu'elle marche sans Internet.
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
